@@ -16,6 +16,10 @@
 # Mono auto generated files
 mono_crash.*
 
+# Dependency directiories
+[Bb]uild/
+.idea/
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -377,11 +381,11 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # VS Code files for those working on multiple tools
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vsc/*
+!.vs/settings.json
+!.vs/tasks.json
+!.vs/launch.json
+!.vs/extensions.json
 *.code-workspace
 
 # Local History for Visual Studio Code
