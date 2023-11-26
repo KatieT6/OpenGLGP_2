@@ -10,6 +10,11 @@
 #include "imgui_impl/imgui_impl_opengl3.h"
 
 #include <Shader.h>
+#include <Camera.h>
+#include <Model.h>
+#include <GameObject.h>
+#include <Light.h>
+#include <Transform.h>
 
 #include <iostream>
 
@@ -22,42 +27,34 @@ static void glfw_error_callback(int error, const char* description)
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+unsigned int loadTexture(char const* path);
 void processInput(GLFWwindow* window);
+void renderSphere(Shader& shader, const unsigned int SEGMENTS);
+
 bool init();
 void init_imgui(GLFWwindow* window);
 void imgui_render();
 void do_Movement();
-void drawSierpinskiPyramid(Shader& shader, int depth, int const maxDepth, glm::mat4 model);
-
 
 // settings
 const unsigned int SCR_WIDTH = 1300;
 const unsigned int SCR_HEIGHT = 800;
 
-// camera
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
-
+//camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
 bool show_tool_window = true;
-
-float yaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float pitch = 0.0f;
-float lastX = 800.0f / 2.0;
-float lastY = 600.0 / 2.0;
-float fov = 45.0f;
-
-int depth = 1;
-int maxDepth = 7;
-float angleX = 0.0f;
-float angleY = 0.0f;
-ImVec4 color = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
+
+ImVec4 color = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 const     char* glsl_version = "#version 460";
@@ -77,81 +74,25 @@ int main()
     }
     spdlog::info("Initialized project.");
 
-    init_imgui(window);
+    //init_imgui(window);
 
     show_tool_window = true;
 
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(true);
+
     glEnable(GL_DEPTH_TEST);
 
-    Shader ourShader("res/shaders/basic.vert", "res/shaders/basic.frag");
+    Shader ourShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
 
-    GLfloat vertices[] = {
-        -0.5f, 0.0f, -0.289f,0.0f, 1.0f,
-        0.5f, 0.0f, -0.289f, 1.0f, 1.0f,
-        0.0f, 0.0f, 0.577f, 0.5f, 0.0f,
-
-        -0.5f, 0.0f, -0.289f, 0.0f, 1.0f,
-        0.5f, 0.0f, -0.289f, 1.0f, 1.0f,
-        0.0f, 0.816f, 0.0f, 0.5f, 0.5f,
-
-        0.5f, 0.0f, -0.289f,1.0f, 1.0f,
-        0.0f, 0.0f, 0.577f, 0.5f, 0.0f,
-        0.0f, 0.816f, 0.0f, 0.5f, 0.5f,
-
-        0.0f, 0.0f, 0.577f,0.5f, 0.0f,
-        -0.5f, 0.0f, -0.289f,0.0f, 1.0f,
-        0.0f, 0.816f, 0.0f, 0.5f, 0.5f,
-    };
-
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    Model ourModel("res/models/earth/earth.obj");
 
 
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // texture coord attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    // draw in wireframe
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    // texture 1
-    // ---------
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    // set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate mipmaps
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char* data = stbi_load("res/textures/meme.jpg", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    ourShader.use();
-    // tell opengl for each sampler to which texture unit it belongs to (only has to be done once)
-    // -------------------------------------------------------------------------------------------
-    ourShader.setInt("texture1", 0);
-
-    glm::mat4 projection = glm::mat4(1.0f);
-    projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    ourShader.setMat4("projection", projection);
+        // render loop
+        // -----------
 
     GLfloat currentFrame = 0.0f;
 
@@ -165,46 +106,32 @@ int main()
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
-
-        if (show_tool_window)
-        {
-			imgui_render();
-        }
-
-
-        
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-      
-        glBindVertexArray(VAO);
-
+        glStencilFunc(GL_EQUAL, 1, 0xFF);
         ourShader.use();
 
+      /*  if (show_tool_window)
+        {
+			imgui_render();
+        }*/
 
-        //macierz modelu
-        glm::mat4 model = glm::mat4(1.0f);
-        //macierz widoku
-        glm::mat4 view = glm::mat4(1.0f);
-
-        
-        view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-         
-        model = glm::rotate(model, glm::radians(angleX), glm::vec3(1.0f, 0.0f, 0.0f));
-        model = glm::rotate(model, glm::radians(angleY), glm::vec3(0.0f, 1.0f, 0.0f));
-
+        // view/projection transformations
+        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
+
+        // render the loaded model
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
-        ourShader.setVec4("color", color.x, color.y, color.z, color.w);
+        ourModel.Draw(ourShader);
 
-        drawSierpinskiPyramid(ourShader, 1, depth, model);
-
+       
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
 
     glfwTerminate();
     return 0;
@@ -219,19 +146,19 @@ void do_Movement()
 
 void processInput(GLFWwindow* window)
 {
-    float cameraSpeed = static_cast<float>(2.5 * deltaTime);
-
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    // Move forward (zoom in)
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
-
-    // Move backward (zoom out)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
+
 
 bool init()
 {
@@ -299,47 +226,156 @@ void imgui_render()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::Begin("Sierpinsky Pyramid");
-	ImGui::Text("Recursion depth");
-	ImGui::SliderInt("Recursion depth", &depth, 1, maxDepth);
-
     ImGui::ColorEdit3("Color of Fractal", (float*)&color);
-	ImGui::Text("Rotation angle X");
+	/*ImGui::Text("Rotation angle X");
     
 	ImGui::SliderFloat("Rotation angle X", &angleX, 0.0f, 360.0f);
 	ImGui::Text("Rotation angle Y");
-	ImGui::SliderFloat("Rotation angle Y", &angleY, 0.0f, 360.0f);
+	ImGui::SliderFloat("Rotation angle Y", &angleY, 0.0f, 360.0f);*/
 	ImGui::End();
 
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-
-
-void drawSierpinskiPyramid(Shader& shader, int depth, int const max, glm::mat4 model)
-{
-    if (depth == max)
-    {
-        model = glm::rotate(model, 45.0f, glm::vec3(0, 1, 0));
-        float const scale = 1.0f / glm::pow(2.0f, static_cast<float>(depth) - 1.0f);
-        shader.setMat4("model", glm::scale(model, glm::vec3(scale, scale, scale)));
-
-        glDrawArrays(GL_TRIANGLES, 0, 12);
-        return;
-    }
-
-    int const next_depth = depth + 1;
-    float const translation = 1.0f / glm::pow(2.0f, next_depth);
-
-    drawSierpinskiPyramid(shader, next_depth, max, glm::translate(model, glm::vec3(0.0f, translation * 0.816f, 0.0)));
-    drawSierpinskiPyramid(shader, next_depth, max, glm::translate(model, glm::vec3(-translation, -translation * 0.816f, translation * 0.6f)));
-    drawSierpinskiPyramid(shader, next_depth, max, glm::translate(model, glm::vec3(translation, -translation * 0.816f, translation * 0.6f)));
-    drawSierpinskiPyramid(shader, next_depth, max, glm::translate(model, glm::vec3(0.0f, -translation * 0.816f, -translation * 1.15f)));
-}
-
-
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+unsigned int loadTexture(char const* path)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data)
+    {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    }
+    else
+    {
+        std::cout << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+    }
+
+    return textureID;
+}
+
+void renderSphere(Shader& shader, const unsigned int SEGMENTS)
+{
+    // Ustawienia liczby segmentów sfery (im wiêcej, tym dok³adniejsza sfera)
+    const unsigned int X_SEGMENTS = SEGMENTS;
+    const unsigned int Y_SEGMENTS = SEGMENTS;
+    const float radius = 1.0f;
+
+    // Przygotuj wektory dla wspó³rzêdnych sfery
+    std::vector<glm::vec3> vertices;
+    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+    {
+        for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+        {
+            float xSegment = static_cast<float>(x) / static_cast<float>(X_SEGMENTS);
+            float ySegment = static_cast<float>(y) / static_cast<float>(Y_SEGMENTS);
+            float xPos = radius * std::cos(xSegment * 2.0f * glm::pi<float>()) * std::sin(ySegment * glm::pi<float>());
+            float yPos = radius * std::cos(ySegment * glm::pi<float>());
+            float zPos = radius * std::sin(xSegment * 2.0f * glm::pi<float>()) * std::sin(ySegment * glm::pi<float>());
+            vertices.emplace_back(xPos, yPos, zPos);
+        }
+    }
+
+    // Przygotuj indeksy dla trójk¹tów sfery
+    std::vector<unsigned int> indices;
+    for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+    {
+        for (unsigned int x = 0; x < X_SEGMENTS; ++x)
+        {
+            unsigned int index = y * (X_SEGMENTS + 1) + x;
+            indices.push_back(index);
+            indices.push_back(index + 1);
+            indices.push_back(index + X_SEGMENTS + 1);
+            indices.push_back(index + 1);
+            indices.push_back(index + X_SEGMENTS + 2);
+            indices.push_back(index + X_SEGMENTS + 1);
+        }
+    }
+
+    // Przygotuj VAO, VBO i EBO dla sfery
+    unsigned int sphereVAO, sphereVBO, sphereEBO;
+    glGenVertexArrays(1, &sphereVAO);
+    glGenBuffers(1, &sphereVBO);
+    glGenBuffers(1, &sphereEBO);
+
+    glBindVertexArray(sphereVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphereEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), reinterpret_cast<void*>(0));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // Renderuj sferê
+    glBindVertexArray(sphereVAO);
+    for (unsigned int i = 0; i < indices.size(); i += 3)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        shader.setMat4("model", model);
+        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
+    }
+    glBindVertexArray(0);
+
+    // Zwolnij zasoby
+    glDeleteVertexArrays(1, &sphereVAO);
+    glDeleteBuffers(1, &sphereVBO);
+    glDeleteBuffers(1, &sphereEBO);
 }
