@@ -1,35 +1,28 @@
+#ifndef GAMEOBJECT_H
+#define GAMEOBJECT_H
+
 #include <draco/mesh/mesh.h>
 
-
 #include <vector>
-#include <Transform.h>
+
 #include <Model.h>
 
 class GameObject {
-//public:
-//	GraphNode(Mesh* mesh)
-//		: mesh_(mesh),
-//		local_(Transform::origin())
-//	{}
-//
-//private:
-//	Transform local_;
-//	Mesh* mesh_;
-//
-//	GraphNode* children_[MAX_CHILDREN];
-//	int numChildren_;
-
 private:
 		Model* model_;
-		Transform* local_;
+		Transform* local_ = new Transform();
 		Transform* world_;
 		std::vector<GameObject*> children_;
 		GameObject* parent_;
-		bool dirty = false;
+		bool dirty_ = true;
 
 public:
 		GameObject(Model* model)
 			: model_(model) {}
+
+		GameObject() {
+			model_ = NULL;
+		}
 
 		void addChild(GameObject* child) {
 			children_.push_back(child);
@@ -46,6 +39,24 @@ public:
 			}
 		}
 
+		void draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty) {
+			dirty_ |= dirty  ;
+			if (dirty_) {
+				local_->getLocalModelMatrix(parent);
+				//world_ = local_;
+			}
+
+			if (model_) {
+				model_->Draw(parent, local_, projection, view, this->dirty_);
+			}
+
+			for (unsigned int i = 0; i < children_.size(); i++)
+			{
+				children_[i]->draw(*local_, projection, view, dirty_);
+			}
+				dirty_ = false;
+		}
+
 		void setParent(GameObject* parent) {
 			if (parent_ != nullptr) {
 				parent_->removeChild(this);
@@ -53,6 +64,26 @@ public:
 			parent->addChild(this);
 		}
 
-		
+		void setLocalPosition(const glm::vec3& position) {
+			local_->position = position;
+			dirty_ = true;
+		}
 
+		void setLocalScale(const glm::vec3& scale) {
+			local_->scale = scale;
+			dirty_ = true;
+		}
+
+		void setLocalRotation(const glm::vec3& rotation) {
+			local_->eulerRot = rotation;
+			dirty_ = true;
+		}
+
+		void setTransform(Transform* local)
+		{
+			local_ = local;
+			dirty_ = true;
+		}
 };
+
+#endif // !GAMEOBJECT_H

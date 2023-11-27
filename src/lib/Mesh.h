@@ -1,5 +1,10 @@
+#ifndef MESH_H
+#define MESH_H
+
 #include <vector>
 #include <Shader.h>
+#include <string>
+#include <glm/ext/scalar_constants.hpp>
 
 struct Vertex {
     glm::vec3 Position;
@@ -30,3 +35,4 @@ private:
     void setupMesh();
 };
 
+#endif // MESH_H

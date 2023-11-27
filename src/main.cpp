@@ -15,6 +15,8 @@
 #include <GameObject.h>
 #include <Light.h>
 #include <Transform.h>
+#include <Sphere.h>
+#include <Elipse.h>
 
 #include <iostream>
 
@@ -28,9 +30,11 @@ static void glfw_error_callback(int error, const char* description)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 unsigned int loadTexture(char const* path);
-void processInput(GLFWwindow* window);
-void renderSphere(Shader& shader, const unsigned int SEGMENTS);
+void processInput(GLFWwindow* window, bool cursorMode);
+void switchCursorMode(GLFWwindow* window, bool active);
+void drawOrbit(GameObject* parentObject, int radius, int noOfVertices);
 
+bool cursorActive = true;
 bool init();
 void init_imgui(GLFWwindow* window);
 void imgui_render();
@@ -39,6 +43,9 @@ void do_Movement();
 // settings
 const unsigned int SCR_WIDTH = 1300;
 const unsigned int SCR_HEIGHT = 800;
+
+const GLchar* vertexPath = "res/shaders/loadModel.vert";
+const GLchar* fragmentPath = "res/shaders/loadModel.frag";
 
 //camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -49,10 +56,14 @@ float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
 bool show_tool_window = true;
+bool show_wireframe = false;
 
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
+float worldSpeed = 8.0f;
+float moonSpeed = 8.0f;
+int vCount = 4;
 
 ImVec4 color = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -74,7 +85,7 @@ int main()
     }
     spdlog::info("Initialized project.");
 
-    //init_imgui(window);
+    init_imgui(window);
 
     show_tool_window = true;
 
@@ -83,13 +94,135 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader ourShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
 
-    Model ourModel("res/models/earth/earth.obj");
+    Model* sunModel = new Model("res/models/sun/sun.obj", vertexPath, fragmentPath);
+    Model* mercuryModel = new Model("res/models/mercury/mercury.obj", vertexPath, fragmentPath);
+    Model* venusModel = new Model("res/models/venus/venus.obj", vertexPath, fragmentPath);
+    Model* earthModel = new Model("res/models/earth/earth.obj", vertexPath, fragmentPath);
+    Model* jupiterModel = new Model("res/models/jupiter/jupiter.obj", vertexPath, fragmentPath);
+
+    Model* moonModel1 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel2 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel3 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel4 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel5 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel6 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Model* moonModel7 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
+    Mesh sphereMesh = buildSphere(1, vCount);
+    Model* sphereModel = new Model(sphereMesh, vertexPath, fragmentPath);
+
+    GameObject* moonDriver1 = new GameObject();
+    GameObject* moonDriver2 = new GameObject();
+    GameObject* moonDriver3 = new GameObject();
+    GameObject* moonDriver4 = new GameObject();
+    GameObject* moonDriver5 = new GameObject();
+    GameObject* moonDriver6 = new GameObject();
+    GameObject* moonDriver7 = new GameObject();
+
+    GameObject* moon1 = new GameObject(moonModel1);
+    GameObject* moon2 = new GameObject(moonModel2);
+    GameObject* moon3 = new GameObject(moonModel3);
+    GameObject* moon4 = new GameObject(moonModel4);
+    GameObject* moon5 = new GameObject(moonModel5);
+    GameObject* moon6 = new GameObject(moonModel6);
+    GameObject* moon7 = new GameObject(moonModel7);
+
+    moonModel1->setColor(glm::vec4(0.2f, 0.1f, 0.3f, 1.0f));
+    moonModel2->setColor(glm::vec4(0.5f, 0.1f, 0.3f, 1.0f));
+    moonModel3->setColor(glm::vec4(0.2f, 0.1f, 0.6f, 1.0f));
+    moonModel4->setColor(glm::vec4(0.2f, 0.5f, 0.3f, 1.0f));
+    moonModel5->setColor(glm::vec4(0.1f, 0.6f, 0.4f, 1.0f));
+    moonModel6->setColor(glm::vec4(0.0f, 0.5f, 0.3f, 1.0f));
+    moonModel7->setColor(glm::vec4(0.3f, 0.3f, 0.3f, 1.0f));
+    sphereModel->setColor(glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
+
+    moonDriver1->addChild(moon1);
+    moonDriver2->addChild(moon2);
+    moonDriver3->addChild(moon3);
+    moonDriver4->addChild(moon4);
+    moonDriver5->addChild(moon5);
+    moonDriver6->addChild(moon6);
+    moonDriver7->addChild(moon7);
+
+    GameObject* mercuryDriver = new GameObject();
+    GameObject* venusDriver = new GameObject();
+    GameObject* earthDriver = new GameObject();
+    GameObject* sphereDriver = new GameObject();
+    GameObject* jupiterDriver = new GameObject();
+
+    GameObject* Sun = new GameObject(sunModel);
+    Sun->setLocalScale(glm::vec3(0.6f, 0.6f, 0.6f));    
+
+    GameObject* Mercury = new GameObject(mercuryModel);    
+    GameObject* Venus = new GameObject(venusModel);
+    GameObject* Earth = new GameObject(earthModel);
+    GameObject* sphere = new GameObject(sphereModel);
+    GameObject* Jupiter = new GameObject(jupiterModel);
+
+   // GameObject* mercury = new GameObject(mercuryModel);
+
+    Sun->addChild(jupiterDriver);
+    Sun->addChild(sphereDriver);
+    Sun->addChild(earthDriver);
+    Sun->addChild(venusDriver);
+    Sun->addChild(mercuryDriver);
+
+    Mercury->setLocalPosition(glm::vec3(10.0f, 0.0f, 0.0f));
+    Venus->setLocalPosition(glm::vec3(15.0f, 0.0f, 0.0f));
+    Earth->setLocalPosition(glm::vec3(30.0f, 0.0f, 0.0f));
+    sphere->setLocalPosition(glm::vec3(35.0f, 0.0f, 0.0f));
+    Jupiter->setLocalPosition(glm::vec3(50.0f, 0.0f, 0.0f));
+
+    mercuryDriver->addChild(Mercury);
+    venusDriver->addChild(Venus);
+    earthDriver->addChild(Earth);
+    sphereDriver->addChild(sphere);
+    jupiterDriver->addChild(Jupiter);
+
+    Jupiter->addChild(moonDriver1);
+    sphere->addChild(moonDriver2);
+    sphere->addChild(moonDriver3);
+    Earth->addChild(moonDriver4);
+    Earth->addChild(moonDriver5);
+    Earth->addChild(moonDriver6);
+    Venus->addChild(moonDriver7);
+
+    //jupiter moon
+    moon1->setLocalPosition(glm::vec3(3.0f, 0.0f, 0.0f));
+    moon1->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
+    //sphere moon
+    moon2->setLocalPosition(glm::vec3(4.0f, 0.0f, 0.0f));
+    moon2->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
+    //sphere moon
+    moon3->setLocalPosition(glm::vec3(5.0f, 0.0f, 0.0f));
+    moon3->setLocalScale(glm::vec3(0.4f, 0.4f, 0.4f));
+    //earth moon
+    moon4->setLocalPosition(glm::vec3(6.0f, 0.0f, 0.0f));
+    moon4->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
+    //earth moon
+    moon5->setLocalPosition(glm::vec3(4.0f, 0.0f, 0.0f));
+    moon5->setLocalScale(glm::vec3(0.25f, 0.25f, 0.25f));
+    //earth moon
+    moon6->setLocalPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+    moon6->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
+    //venus moon
+    moon7->setLocalPosition(glm::vec3(2.0f, 0.0f, 0.0f));
+    moon7->setLocalScale(glm::vec3(0.4f, 0.4f, 0.4f));
 
 
-    // draw in wireframe
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    drawOrbit(Sun, 10, 100);
+    drawOrbit(Sun, 15, 100);
+    drawOrbit(Sun, 30, 100);
+    drawOrbit(Sun, 35, 100);
+    drawOrbit(Sun, 50, 100);
+
+    drawOrbit(Venus, 2, 70);
+    drawOrbit(Earth, 2, 70);
+    drawOrbit(Earth, 4, 70);
+    drawOrbit(Earth, 6, 70);
+    drawOrbit(sphere, 4, 70);
+    drawOrbit(sphere, 5, 70);
+    drawOrbit(Jupiter, 3, 70);
 
         // render loop
         // -----------
@@ -102,32 +235,50 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        processInput(window);
+        processInput(window, &cursorActive);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(10.0f / 255.0f, 2.0f / 255.0f, 28.0f / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
-        glStencilFunc(GL_EQUAL, 1, 0xFF);
-        ourShader.use();
 
-      /*  if (show_tool_window)
-        {
-			imgui_render();
-        }*/
-
-        // view/projection transformations
+        
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        ourShader.setMat4("projection", projection);
-        ourShader.setMat4("view", view);
 
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// it's a bit too big for our scene, so scale it down
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        Mesh sphereMeshUpdate = buildSphere(1, vCount);
+        std::vector<Mesh> meshes;
+        meshes.push_back(sphereMeshUpdate);
+        sphereModel->updateMeshes(meshes);
+        
+        Sun->setLocalRotation(glm::vec3(0.0f, currentFrame * (worldSpeed), glm::radians(45.0f)));
+        mercuryDriver->setLocalRotation(glm::vec3(50.0f, currentFrame * worldSpeed * 9.5f, 0.0f));
+        venusDriver->setLocalRotation(glm::vec3(-20.0f, currentFrame * worldSpeed * 8.5f, 0.0f));
+        earthDriver->setLocalRotation(glm::vec3(60.0f, currentFrame * worldSpeed * 7.5f, 0.0f));
+        sphereDriver->setLocalRotation(glm::vec3(10.0f, currentFrame * worldSpeed * 4.5f, 0.0f));
+        jupiterDriver->setLocalRotation(glm::vec3(-30.0f, currentFrame * worldSpeed * 3.5f, 0.0f));
 
-       
+        moonDriver1->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 3.5f, 0.0f));
+        moonDriver2->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 1.5f, 0.0f));
+        moonDriver3->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * -1.0f, 0.0f));
+        moonDriver4->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * -2.f, 0.0f));
+        moonDriver5->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 0.5f, 0.0f));
+        moonDriver6->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 5.5f, 0.0f));
+        moonDriver7->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 7.5f, 0.0f));
+
+        Sun->draw(Transform(), projection, view, true);
+
+        if (show_tool_window)
+        {
+            imgui_render();
+        }
+        if (show_wireframe)
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        else
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -142,9 +293,18 @@ void do_Movement()
     GLfloat cameraSpeed = 2.5f * deltaTime;
 };
 
+void drawOrbit(GameObject* parentObject, int radius, int noOfVertices)
+{
+    Shader orbitShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
+    Mesh orbitMesh = buildElipse(0, 0, radius, radius, noOfVertices, orbitShader);
+    Model* orbitModel = new Model(orbitMesh, "res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
+    GameObject* orbitObject = new GameObject(orbitModel);
+    parentObject->addChild(orbitObject);
+};
 
 
-void processInput(GLFWwindow* window)
+
+void processInput(GLFWwindow* window, bool cursorMode)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
@@ -191,6 +351,11 @@ bool init()
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+    // tell GLFW to capture our mouse
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -220,22 +385,19 @@ void init_imgui(GLFWwindow* window)
 
 void imgui_render()
 {
-    static float f = 0.0f;
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::Begin("Niez³e kszta³ty");    
 
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
+    ImGui::SliderFloat("World rotation speed", &worldSpeed, 0, 15);
+    ImGui::SliderFloat("Moon rotation speed", &moonSpeed, 0, 15);
+    ImGui::SliderInt("Sphere sectors count ", &vCount, 1, 36);
+    ImGui::Checkbox("Wireframe", &show_wireframe);
+    ImGui::End();
 
-    ImGui::ColorEdit3("Color of Fractal", (float*)&color);
-	/*ImGui::Text("Rotation angle X");
-    
-	ImGui::SliderFloat("Rotation angle X", &angleX, 0.0f, 360.0f);
-	ImGui::Text("Rotation angle Y");
-	ImGui::SliderFloat("Rotation angle Y", &angleY, 0.0f, 360.0f);*/
-	ImGui::End();
-
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -267,6 +429,18 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void switchCursorMode(GLFWwindow* window, bool active)
+{
+    if (active) {
+        glfwSetCursorPosCallback(window, mouse_callback);
+        glfwSetScrollCallback(window, scroll_callback);
+    }
+    else {
+        glfwSetCursorPosCallback(window, NULL);
+        glfwSetScrollCallback(window, NULL);
+    }
 }
 
 unsigned int loadTexture(char const* path)
@@ -306,76 +480,4 @@ unsigned int loadTexture(char const* path)
     return textureID;
 }
 
-void renderSphere(Shader& shader, const unsigned int SEGMENTS)
-{
-    // Ustawienia liczby segmentów sfery (im wiêcej, tym dok³adniejsza sfera)
-    const unsigned int X_SEGMENTS = SEGMENTS;
-    const unsigned int Y_SEGMENTS = SEGMENTS;
-    const float radius = 1.0f;
 
-    // Przygotuj wektory dla wspó³rzêdnych sfery
-    std::vector<glm::vec3> vertices;
-    for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
-    {
-        for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
-        {
-            float xSegment = static_cast<float>(x) / static_cast<float>(X_SEGMENTS);
-            float ySegment = static_cast<float>(y) / static_cast<float>(Y_SEGMENTS);
-            float xPos = radius * std::cos(xSegment * 2.0f * glm::pi<float>()) * std::sin(ySegment * glm::pi<float>());
-            float yPos = radius * std::cos(ySegment * glm::pi<float>());
-            float zPos = radius * std::sin(xSegment * 2.0f * glm::pi<float>()) * std::sin(ySegment * glm::pi<float>());
-            vertices.emplace_back(xPos, yPos, zPos);
-        }
-    }
-
-    // Przygotuj indeksy dla trójk¹tów sfery
-    std::vector<unsigned int> indices;
-    for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
-    {
-        for (unsigned int x = 0; x < X_SEGMENTS; ++x)
-        {
-            unsigned int index = y * (X_SEGMENTS + 1) + x;
-            indices.push_back(index);
-            indices.push_back(index + 1);
-            indices.push_back(index + X_SEGMENTS + 1);
-            indices.push_back(index + 1);
-            indices.push_back(index + X_SEGMENTS + 2);
-            indices.push_back(index + X_SEGMENTS + 1);
-        }
-    }
-
-    // Przygotuj VAO, VBO i EBO dla sfery
-    unsigned int sphereVAO, sphereVBO, sphereEBO;
-    glGenVertexArrays(1, &sphereVAO);
-    glGenBuffers(1, &sphereVBO);
-    glGenBuffers(1, &sphereEBO);
-
-    glBindVertexArray(sphereVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, sphereVBO);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, sphereEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), reinterpret_cast<void*>(0));
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-
-    // Renderuj sferê
-    glBindVertexArray(sphereVAO);
-    for (unsigned int i = 0; i < indices.size(); i += 3)
-    {
-        glm::mat4 model = glm::mat4(1.0f);
-        shader.setMat4("model", model);
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, nullptr);
-    }
-    glBindVertexArray(0);
-
-    // Zwolnij zasoby
-    glDeleteVertexArrays(1, &sphereVAO);
-    glDeleteBuffers(1, &sphereVBO);
-    glDeleteBuffers(1, &sphereEBO);
-}

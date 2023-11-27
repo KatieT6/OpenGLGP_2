@@ -1,5 +1,5 @@
 #include "Mesh.h"
-#include <string>
+
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures)
 {
@@ -9,6 +9,8 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 
     setupMesh();
 }
+
+
 
 void Mesh::Draw(Shader shader)
 {

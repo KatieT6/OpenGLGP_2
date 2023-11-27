@@ -1,7 +1,13 @@
 #include "Model.h"
 
-void Model::Draw(Shader& shader)
+void Model::Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty)
 {
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    shader.setMat4("model", local->modelMatrix);
+    shader.setVec4("color", color);
+
     for (unsigned int i = 0; i < meshes.size(); i++)
         meshes[i].Draw(shader);
 }

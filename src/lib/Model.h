@@ -1,8 +1,11 @@
+#ifndef MODEL_H
+#define MODEL_H
+
 #include <vector>
 #include <Shader.h>
 #include <iostream>
 #include <string>
-
+#include <Transform.h>
 #include "Mesh.h"
 
 #include <assimp/Importer.hpp>
@@ -17,20 +20,44 @@ class Model
 {
 public:
     /*  Funkcje   */
-    Model(const char* path)
+    Model(const char* path, const GLchar* vertexPath, const GLchar* fragmentPath)
     {
+        shader = Shader(vertexPath, fragmentPath);
+        color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         loadModel(path);
     }
-    void Draw(Shader& shader);
+
+    Model(Mesh mesh, const GLchar* vertexPath, const GLchar* fragmentPath)
+	{
+		shader = Shader(vertexPath, fragmentPath);
+        color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		meshes.push_back(mesh);
+	}
+
+    void updateMeshes(std::vector<Mesh> meshes)
+	{
+		this->meshes = meshes;
+	}
+
+    void setColor(glm::vec4 color)
+	{
+		this->color = color;
+	}
+
+    void Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty);
 private:
     /*  Dane modelu  */
     std::vector<Mesh> meshes;
     std::string directory;
     std::vector<Texture> textures_loaded;
+    Shader shader;
+    glm::vec4 color;;
     /*  Funkcje   */
     void loadModel(std::string path);
     void processNode(aiNode* node, const aiScene* scene);
     Mesh processMesh(aiMesh* mesh, const aiScene* scene);
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 };
+
+#endif // MODEL_H
 

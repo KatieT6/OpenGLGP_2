@@ -17,6 +17,7 @@ public:
 
     // konstruktor czyta plik shadera z dysku i tworzy go  
     Shader(const GLchar* vertexPath, const GLchar* fragmentPath);
+    Shader() {}
     // aktywuj shader  
     void use();
     // funkcje operuj¹ce na uniformach  
