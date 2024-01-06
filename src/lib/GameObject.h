@@ -9,7 +9,6 @@
 
 class GameObject {
 private:
-		Model* model_;
 		Transform* local_ = new Transform();
 		Transform* world_;
 		std::vector<GameObject*> children_;
@@ -17,6 +16,7 @@ private:
 		bool dirty_ = true;
 
 public:
+		Model* model_;
 		GameObject(Model* model)
 			: model_(model) {}
 
@@ -83,6 +83,10 @@ public:
 		{
 			local_ = local;
 			dirty_ = true;
+		}
+
+		Transform* getLocalTransform() {
+			return local_;
 		}
 };
 

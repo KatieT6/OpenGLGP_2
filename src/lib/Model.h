@@ -45,17 +45,18 @@ public:
 	}
 
     void Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty);
-private:
+    void Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local);
     /*  Dane modelu  */
     std::vector<Mesh> meshes;
     std::string directory;
     std::vector<Texture> textures_loaded;
     Shader shader;
     glm::vec4 color;;
+private:
     /*  Funkcje   */
     void loadModel(std::string path);
     void processNode(aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+    Mesh processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4* instanceMatrices, unsigned int instanceCount);
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 };
 

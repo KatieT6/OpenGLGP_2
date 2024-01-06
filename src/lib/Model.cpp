@@ -12,6 +12,17 @@ void Model::Draw(Transform parent, Transform* local, glm::mat4 projection, glm::
         meshes[i].Draw(shader);
 }
 
+void Model::Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local)
+{
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    shader.setMat4("model", local);
+    shader.setVec4("color", color);
+    for (unsigned int i = 0; i < meshes.size(); i++)
+        meshes[i].Draw(shader);
+}
+
 void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;
@@ -33,7 +44,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        meshes.push_back(processMesh(mesh, scene, NULL, 0));
     }
     // nastêpnie wykonaj to samo dla ka¿dego z jego dzieci
     for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -42,7 +53,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4* instanceMatrices, unsigned int instanceCount)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -94,7 +105,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
     }
 
-    return Mesh(vertices, indices, textures);
+    return Mesh(vertices, indices, textures, instanceMatrices, instanceCount);
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)
@@ -147,6 +158,11 @@ unsigned int TextureFromFile(const char* path, const std::string& directory)
             format = GL_RGB;
         else if (nrComponents == 4)
             format = GL_RGBA;
+        else
+        {
+            std::cout << "Texture failed to load at path: " << path << std::endl;
+			stbi_image_free(data);
+        }
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);

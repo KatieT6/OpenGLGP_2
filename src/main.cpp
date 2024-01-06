@@ -44,8 +44,8 @@ void do_Movement();
 const unsigned int SCR_WIDTH = 1300;
 const unsigned int SCR_HEIGHT = 800;
 
-const GLchar* vertexPath = "res/shaders/loadModel.vert";
-const GLchar* fragmentPath = "res/shaders/loadModel.frag";
+const GLchar* vertexPath = "res/shaders/instance.vert";
+const GLchar* fragmentPath = "res/shaders/instance.frag";
 
 //camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -94,135 +94,122 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
+    Shader instanceShader(vertexPath, fragmentPath);
 
-    Model* sunModel = new Model("res/models/sun/sun.obj", vertexPath, fragmentPath);
-    Model* mercuryModel = new Model("res/models/mercury/mercury.obj", vertexPath, fragmentPath);
-    Model* venusModel = new Model("res/models/venus/venus.obj", vertexPath, fragmentPath);
-    Model* earthModel = new Model("res/models/earth/earth.obj", vertexPath, fragmentPath);
-    Model* jupiterModel = new Model("res/models/jupiter/jupiter.obj", vertexPath, fragmentPath);
-
-    Model* moonModel1 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel2 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel3 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel4 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel5 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel6 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Model* moonModel7 = new Model("res/models/moon/moon.obj", vertexPath, fragmentPath);
-    Mesh sphereMesh = buildSphere(1, vCount);
-    Model* sphereModel = new Model(sphereMesh, vertexPath, fragmentPath);
-
-    GameObject* moonDriver1 = new GameObject();
-    GameObject* moonDriver2 = new GameObject();
-    GameObject* moonDriver3 = new GameObject();
-    GameObject* moonDriver4 = new GameObject();
-    GameObject* moonDriver5 = new GameObject();
-    GameObject* moonDriver6 = new GameObject();
-    GameObject* moonDriver7 = new GameObject();
-
-    GameObject* moon1 = new GameObject(moonModel1);
-    GameObject* moon2 = new GameObject(moonModel2);
-    GameObject* moon3 = new GameObject(moonModel3);
-    GameObject* moon4 = new GameObject(moonModel4);
-    GameObject* moon5 = new GameObject(moonModel5);
-    GameObject* moon6 = new GameObject(moonModel6);
-    GameObject* moon7 = new GameObject(moonModel7);
-
-    moonModel1->setColor(glm::vec4(0.2f, 0.1f, 0.3f, 1.0f));
-    moonModel2->setColor(glm::vec4(0.5f, 0.1f, 0.3f, 1.0f));
-    moonModel3->setColor(glm::vec4(0.2f, 0.1f, 0.6f, 1.0f));
-    moonModel4->setColor(glm::vec4(0.2f, 0.5f, 0.3f, 1.0f));
-    moonModel5->setColor(glm::vec4(0.1f, 0.6f, 0.4f, 1.0f));
-    moonModel6->setColor(glm::vec4(0.0f, 0.5f, 0.3f, 1.0f));
-    moonModel7->setColor(glm::vec4(0.3f, 0.3f, 0.3f, 1.0f));
-    sphereModel->setColor(glm::vec4(0.5f, 0.0f, 0.0f, 1.0f));
-
-    moonDriver1->addChild(moon1);
-    moonDriver2->addChild(moon2);
-    moonDriver3->addChild(moon3);
-    moonDriver4->addChild(moon4);
-    moonDriver5->addChild(moon5);
-    moonDriver6->addChild(moon6);
-    moonDriver7->addChild(moon7);
-
-    GameObject* mercuryDriver = new GameObject();
-    GameObject* venusDriver = new GameObject();
-    GameObject* earthDriver = new GameObject();
-    GameObject* sphereDriver = new GameObject();
-    GameObject* jupiterDriver = new GameObject();
-
-    GameObject* Sun = new GameObject(sunModel);
-    Sun->setLocalScale(glm::vec3(0.6f, 0.6f, 0.6f));    
-
-    GameObject* Mercury = new GameObject(mercuryModel);    
-    GameObject* Venus = new GameObject(venusModel);
-    GameObject* Earth = new GameObject(earthModel);
-    GameObject* sphere = new GameObject(sphereModel);
-    GameObject* Jupiter = new GameObject(jupiterModel);
-
-   // GameObject* mercury = new GameObject(mercuryModel);
-
-    Sun->addChild(jupiterDriver);
-    Sun->addChild(sphereDriver);
-    Sun->addChild(earthDriver);
-    Sun->addChild(venusDriver);
-    Sun->addChild(mercuryDriver);
-
-    Mercury->setLocalPosition(glm::vec3(10.0f, 0.0f, 0.0f));
-    Venus->setLocalPosition(glm::vec3(15.0f, 0.0f, 0.0f));
-    Earth->setLocalPosition(glm::vec3(30.0f, 0.0f, 0.0f));
-    sphere->setLocalPosition(glm::vec3(35.0f, 0.0f, 0.0f));
-    Jupiter->setLocalPosition(glm::vec3(50.0f, 0.0f, 0.0f));
-
-    mercuryDriver->addChild(Mercury);
-    venusDriver->addChild(Venus);
-    earthDriver->addChild(Earth);
-    sphereDriver->addChild(sphere);
-    jupiterDriver->addChild(Jupiter);
-
-    Jupiter->addChild(moonDriver1);
-    sphere->addChild(moonDriver2);
-    sphere->addChild(moonDriver3);
-    Earth->addChild(moonDriver4);
-    Earth->addChild(moonDriver5);
-    Earth->addChild(moonDriver6);
-    Venus->addChild(moonDriver7);
-
-    //jupiter moon
-    moon1->setLocalPosition(glm::vec3(3.0f, 0.0f, 0.0f));
-    moon1->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
-    //sphere moon
-    moon2->setLocalPosition(glm::vec3(4.0f, 0.0f, 0.0f));
-    moon2->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
-    //sphere moon
-    moon3->setLocalPosition(glm::vec3(5.0f, 0.0f, 0.0f));
-    moon3->setLocalScale(glm::vec3(0.4f, 0.4f, 0.4f));
-    //earth moon
-    moon4->setLocalPosition(glm::vec3(6.0f, 0.0f, 0.0f));
-    moon4->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
-    //earth moon
-    moon5->setLocalPosition(glm::vec3(4.0f, 0.0f, 0.0f));
-    moon5->setLocalScale(glm::vec3(0.25f, 0.25f, 0.25f));
-    //earth moon
-    moon6->setLocalPosition(glm::vec3(2.0f, 0.0f, 0.0f));
-    moon6->setLocalScale(glm::vec3(0.2f, 0.2f, 0.2f));
-    //venus moon
-    moon7->setLocalPosition(glm::vec3(2.0f, 0.0f, 0.0f));
-    moon7->setLocalScale(glm::vec3(0.4f, 0.4f, 0.4f));
+    Model* domek = new Model("res/models/domek/domek.obj", vertexPath, fragmentPath);
+    Model* dach = new Model("res/models/dach/dach.obj", vertexPath, fragmentPath);
+    Model* plane = new Model("res/models/grass/plane.obj", vertexPath, fragmentPath);
 
 
-    drawOrbit(Sun, 10, 100);
-    drawOrbit(Sun, 15, 100);
-    drawOrbit(Sun, 30, 100);
-    drawOrbit(Sun, 35, 100);
-    drawOrbit(Sun, 50, 100);
+    GameObject* dachDriver = new GameObject();
+    GameObject* domekDriver = new GameObject();
 
-    drawOrbit(Venus, 2, 70);
-    drawOrbit(Earth, 2, 70);
-    drawOrbit(Earth, 4, 70);
-    drawOrbit(Earth, 6, 70);
-    drawOrbit(sphere, 4, 70);
-    drawOrbit(sphere, 5, 70);
-    drawOrbit(Jupiter, 3, 70);
+
+    GameObject* Root = new GameObject(plane);
+    GameObject* Domek = new GameObject(domek);
+    GameObject* Dach = new GameObject(dach);    
+
+    Root->setLocalScale(glm::vec3(1.0f, 1.0f, 1.0f));
+
+
+    Dach->setLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+    Root->setLocalPosition(glm::vec3(0.0f, 0.0f, 0.0f));
+
+    dachDriver->addChild(Dach);
+    domekDriver->addChild(Domek);
+
+    Domek->addChild(dachDriver);
+    Root->addChild(domekDriver);
+
+    // Instanced matrices setup
+    int rows = 200, cols = 200;
+    int amount = rows * cols;
+
+    std::vector<Transform*> domekTransforms;
+    std::vector<Transform*> dachTransforms;
+
+    auto planeTransform = Root->getLocalTransform();
+
+    //glm::mat4 tmp = glm::translate(glm::mat4(1.0f), { -400, 0, -400 });
+    //for (auto i = 0; i < cols; i++) {
+    //    glm::mat4 model(1.0f);
+    //    for (auto j = 0; j < rows; j++) {
+    //        auto houseTransform = new Transform();
+    //        auto roofTransform = new Transform();
+
+    //        tmp = glm::translate(tmp, glm::vec3(4.0f, 0.0f, 0.0f));
+    //        model = glm::translate(tmp, glm::vec3(0.0f, 1.5f, 0.0f));
+
+    //        houseTransform->getLocalModelMatrix(model);
+    //        houseTransform->setParent(neighbourhoodTransform);
+
+    //        houseTransforms.emplace_back(houseTransform);
+
+    //        roofTransform->setLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
+    //        roofTransform->setParent(houseTransforms.back());
+
+    //        roofTransforms.emplace_back(roofTransform);
+    //    }
+    //    tmp = glm::translate(tmp, glm::vec3(-1.0f * static_cast<float>(rows) * 4.0f, 0.0f, 4.0f));
+    //}
+
+    //// Create instanced entities
+    //auto house = new InstancedEntity(houseModel, &lightShader, houseTransforms);
+    //auto roof = new InstancedEntity(roofModel, &lightShader, roofTransforms);
+
+    // generate a large list of semi-random model transformation matrices
+    // ------------------------------------------------------------------
+    glm::mat4* modelMatrices;
+    modelMatrices = new glm::mat4[amount];
+    glm::mat4 tmp = glm::translate(glm::mat4(1.0f), { -400, 0, -400 });
+    for (unsigned int i = 0; i < cols; i++)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        for (unsigned int j = 0; j < rows; j++)
+        {
+            // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+            tmp = glm::translate(tmp, glm::vec3(4.0f, 0.0f, 0.0f));
+            model = glm::translate(tmp, glm::vec3(0.0f,-1.0f, 0.0f));
+
+            // 4. now add to list of matrices
+            modelMatrices[i * rows + j] = model;
+        }
+        tmp = glm::translate(tmp, glm::vec3(-1.0f * static_cast<float>(rows) * 4.0f, 0.0f, 4.0f));
+    }
+
+    // configure instanced array
+    // -------------------------
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+    // set transformation matrices as an instance vertex attribute (with divisor 1)
+    // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
+    // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
+    // -----------------------------------------------------------------------------------------------------------------------------------
+    for (unsigned int i = 0; i < domek->meshes.size(); i++)
+    {
+        unsigned int VAO = domek->meshes[i].VAO;
+        glBindVertexArray(VAO);
+        // set attribute pointers for matrix (4 times vec4)
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+
+        glBindVertexArray(0);
+    }
+
 
         // render loop
         // -----------
@@ -244,40 +231,39 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
-        Mesh sphereMeshUpdate = buildSphere(1, vCount);
-        std::vector<Mesh> meshes;
-        meshes.push_back(sphereMeshUpdate);
-        sphereModel->updateMeshes(meshes);
+        instanceShader.use();
+        instanceShader.setMat4("projection", projection);
+        instanceShader.setMat4("view", view);
+
+        // draw meteorites
+        instanceShader.use();
+        instanceShader.setInt("texture_diffuse1", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, domek->textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
+        for (unsigned int i = 0; i < domek->meshes.size(); i++)
+        {
+            glBindVertexArray(domek->meshes[i].VAO);
+            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(domek->meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
+            glBindVertexArray(0);
+        }
+
         
-        Sun->setLocalRotation(glm::vec3(0.0f, currentFrame * (worldSpeed), glm::radians(45.0f)));
-        mercuryDriver->setLocalRotation(glm::vec3(50.0f, currentFrame * worldSpeed * 9.5f, 0.0f));
-        venusDriver->setLocalRotation(glm::vec3(-20.0f, currentFrame * worldSpeed * 8.5f, 0.0f));
-        earthDriver->setLocalRotation(glm::vec3(60.0f, currentFrame * worldSpeed * 7.5f, 0.0f));
-        sphereDriver->setLocalRotation(glm::vec3(10.0f, currentFrame * worldSpeed * 4.5f, 0.0f));
-        jupiterDriver->setLocalRotation(glm::vec3(-30.0f, currentFrame * worldSpeed * 3.5f, 0.0f));
+        //Root->setLocalRotation(glm::vec3(0.0f, 0 /*currentFrame * (worldSpeed)*/, glm::radians(45.0f)));
 
-        moonDriver1->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 3.5f, 0.0f));
-        moonDriver2->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 1.5f, 0.0f));
-        moonDriver3->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * -1.0f, 0.0f));
-        moonDriver4->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * -2.f, 0.0f));
-        moonDriver5->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 0.5f, 0.0f));
-        moonDriver6->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 5.5f, 0.0f));
-        moonDriver7->setLocalRotation(glm::vec3(0.0f, currentFrame * moonSpeed * 7.5f, 0.0f));
+        //Root->draw(Transform(), projection, view, true);
 
-        Sun->draw(Transform(), projection, view, true);
-
-        if (show_tool_window)
-        {
-            imgui_render();
-        }
-        if (show_wireframe)
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-        else
-        {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
+        //if (show_tool_window)
+        //{
+        //    imgui_render();
+        //}
+        //if (show_wireframe)
+        //{
+        //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        //}
+        //else
+        //{
+        //    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        //}
 
         glfwSwapBuffers(window);
         glfwPollEvents();
