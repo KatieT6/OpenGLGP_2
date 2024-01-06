@@ -16,7 +16,7 @@ public:
     InstancedGameObject(Model* model, Shader* shader, std::vector<Transform*> transforms);
     ~InstancedGameObject() = default;
 
-    //void draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty) override;
+    void draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty);
     //void update();
 
     std::vector<Transform*> instanceTransforms;

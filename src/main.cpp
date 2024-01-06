@@ -188,9 +188,9 @@ int main()
     // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
     // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
     // -----------------------------------------------------------------------------------------------------------------------------------
-    for (unsigned int i = 0; i < domek->meshes.size(); i++)
+    for (unsigned int i = 0; i < Domek->model_->meshes.size(); i++)
     {
-        unsigned int VAO = domek->meshes[i].VAO;
+        unsigned int VAO = Domek->model_->meshes[i].VAO;
         glBindVertexArray(VAO);
         // set attribute pointers for matrix (4 times vec4)
         glEnableVertexAttribArray(3);
@@ -231,6 +231,7 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
+        //to ma byæw kodzie wszstko 
         instanceShader.use();
         instanceShader.setMat4("projection", projection);
         instanceShader.setMat4("view", view);
@@ -238,12 +239,14 @@ int main()
         // draw meteorites
         instanceShader.use();
         instanceShader.setInt("texture_diffuse1", 0);
+
+        //to w sumie jest funkcja draw
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, domek->textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
-        for (unsigned int i = 0; i < domek->meshes.size(); i++)
+        glBindTexture(GL_TEXTURE_2D, Domek->model_->textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
+        for (unsigned int i = 0; i < Domek->model_->meshes.size(); i++)
         {
-            glBindVertexArray(domek->meshes[i].VAO);
-            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(domek->meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
+            glBindVertexArray(Domek->model_->meshes[i].VAO);
+            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(Domek->model_->meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
             glBindVertexArray(0);
         }
 
@@ -252,10 +255,10 @@ int main()
 
         //Root->draw(Transform(), projection, view, true);
 
-        //if (show_tool_window)
-        //{
-        //    imgui_render();
-        //}
+        if (show_tool_window)
+        {
+            imgui_render();
+        }
         //if (show_wireframe)
         //{
         //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

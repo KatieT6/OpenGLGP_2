@@ -7,7 +7,7 @@ void InstancedGameObject::prepareInstanceMatrixBuffer()
 	std::vector<glm::mat4> instanceMatrices;
 	for (const auto& transform : instanceTransforms)
 		instanceMatrices.emplace_back(transform->modelMatrix);
-
+     
 	glBindBuffer(GL_ARRAY_BUFFER, instanceMatrixBuffer);
 	glBufferData(GL_ARRAY_BUFFER, static_cast<int>(instanceMatrices.size()) * sizeof(glm::mat4), instanceMatrices.data(), GL_DYNAMIC_DRAW);
 
@@ -31,7 +31,7 @@ void InstancedGameObject::prepareInstanceMatrixBuffer()
         glVertexAttribDivisor(4, 1);
         glVertexAttribDivisor(5, 1);
         glVertexAttribDivisor(6, 1);
-
+        
         glBindVertexArray(0);
 
 	}
@@ -43,14 +43,21 @@ void InstancedGameObject::updateInstanceMatrixBuffer()
 
 InstancedGameObject::InstancedGameObject()
 {
+    prepareInstanceMatrixBuffer();
 }
 
-InstancedGameObject::InstancedGameObject(Model* model, Shader* shader, std::vector<Transform*> transforms)
+InstancedGameObject::InstancedGameObject(Model* model, Shader* shader, std::vector<Transform*> transforms) :
+    GameObject(model, shader), instanceTransforms(std::move(transforms)) {
+        prepareInstanceMatrixBuffer();
+}
+
+void InstancedGameObject::draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty)
 {
+    updateInstanceMatrixBuffer();
+
+    if (model_ != nullptr) {
+        shader_->use();
+        model_->DrawInstanced(instanceTransforms.size());
+    }
 
 }
-
-//void InstancedGameObject::draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty)
-//{
-//
-//}

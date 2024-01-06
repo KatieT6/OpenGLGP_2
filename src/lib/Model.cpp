@@ -23,6 +23,17 @@ void Model::Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local)
         meshes[i].Draw(shader);
 }
 
+void Model::DrawInstanced(glm::mat4 projection, glm::mat4 view, glm::mat4 local, Shader& shader, unsigned int instanceCount)
+{
+    shader.use();
+    shader.setMat4("projection", projection);
+    shader.setMat4("view", view);
+    shader.setMat4("model", local);
+    shader.setVec4("color", color);
+    for (unsigned int i = 0; i < meshes.size(); i++)
+		meshes[i].DrawInstanced(shader, instanceCount);
+}
+
 void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;

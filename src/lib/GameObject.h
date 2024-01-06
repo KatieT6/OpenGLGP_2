@@ -16,9 +16,10 @@ private:
 		bool dirty_ = true;
 
 public:
+		Shader* shader_ = nullptr;
 		Model* model_;
-		GameObject(Model* model)
-			: model_(model) {}
+		GameObject(Model* model, Shader* shader)
+			: model_(model), shader_(shader) {}
 
 		GameObject() {
 			model_ = NULL;

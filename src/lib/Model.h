@@ -19,10 +19,15 @@ unsigned int TextureFromFile(const char* path, const std::string& directory);
 class Model
 {
 public:
+    /*  Dane modelu  */
+    std::vector<Mesh> meshes;
+    std::string directory;
+    std::vector<Texture> textures_loaded;
+    Shader shader;
+    glm::vec4 color;
     /*  Funkcje   */
-    Model(const char* path, const GLchar* vertexPath, const GLchar* fragmentPath)
+    Model(const char* path, const glm::mat4* instanceMatrices, const unsigned int instanceCount)
     {
-        shader = Shader(vertexPath, fragmentPath);
         color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         loadModel(path);
     }
@@ -46,12 +51,7 @@ public:
 
     void Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty);
     void Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local);
-    /*  Dane modelu  */
-    std::vector<Mesh> meshes;
-    std::string directory;
-    std::vector<Texture> textures_loaded;
-    Shader shader;
-    glm::vec4 color;;
+    void DrawInstanced(glm::mat4 projection, glm::mat4 view, glm::mat4 local, Shader& shader, unsigned int instanceCount);
 private:
     /*  Funkcje   */
     void loadModel(std::string path);
