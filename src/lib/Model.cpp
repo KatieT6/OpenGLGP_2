@@ -5,7 +5,7 @@ void Model::Draw(Transform parent, Transform* local, glm::mat4 projection, glm::
     shader.use();
     shader.setMat4("projection", projection);
     shader.setMat4("view", view);
-    shader.setMat4("model", local->modelMatrix);
+    //shader.setMat4("model", local->m_modelMatrix);
     shader.setVec4("color", color);
 
     for (unsigned int i = 0; i < meshes.size(); i++)
@@ -23,16 +23,13 @@ void Model::Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local)
         meshes[i].Draw(shader);
 }
 
-void Model::DrawInstanced(glm::mat4 projection, glm::mat4 view, glm::mat4 local, Shader& shader, unsigned int instanceCount)
+void Model::Draw(Shader shader)
 {
-    shader.use();
-    shader.setMat4("projection", projection);
-    shader.setMat4("view", view);
-    shader.setMat4("model", local);
-    shader.setVec4("color", color);
-    for (unsigned int i = 0; i < meshes.size(); i++)
-		meshes[i].DrawInstanced(shader, instanceCount);
+	for (unsigned int i = 0; i < meshes.size(); i++)
+		meshes[i].Draw(shader);
 }
+
+
 
 void Model::loadModel(std::string path)
 {
@@ -55,7 +52,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene, NULL, 0));
+        meshes.push_back(processMesh(mesh, scene));
     }
     // nastêpnie wykonaj to samo dla ka¿dego z jego dzieci
     for (unsigned int i = 0; i < node->mNumChildren; i++)
@@ -64,7 +61,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4* instanceMatrices, unsigned int instanceCount)
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -116,7 +113,7 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4* ins
         textures.insert(textures.end(), specularMaps.begin(), specularMaps.end());
     }
 
-    return Mesh(vertices, indices, textures, instanceMatrices, instanceCount);
+    return Mesh(vertices, indices, textures);
 }
 
 std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName)

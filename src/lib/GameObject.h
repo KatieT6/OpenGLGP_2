@@ -8,86 +8,166 @@
 #include <Model.h>
 
 class GameObject {
-private:
-		Transform* local_ = new Transform();
-		Transform* world_;
-		std::vector<GameObject*> children_;
-		GameObject* parent_;
+protected:
+		std::list<std::unique_ptr<GameObject>> children_;
+		GameObject* parent_ = nullptr;
 		bool dirty_ = true;
 
 public:
+		std::string name;
+		glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		Shader* shader_ = nullptr;
-		Model* model_;
+		Model* model_ = nullptr;
+		Transform transform;
+
 		GameObject(Model* model, Shader* shader)
 			: model_(model), shader_(shader) {}
 
 		GameObject() {
 			model_ = NULL;
 		}
+		GameObject(Model& model, std::string name)
+			: model_(&model), name(name) {}
 
-		void addChild(GameObject* child) {
-			children_.push_back(child);
+		GameObject(std::string nameofObj){
+			name = nameofObj;
+		}
+
+		/*void addChild(GameObject* child) {
+			children_.emplace_back(child);
 			child->parent_ = this;
+		}*/
+
+		template<typename... TArgs>
+		void addChild(TArgs&... args)
+		{
+			children_.emplace_back(std::make_unique<GameObject>(args...));
+			children_.back()->parent_ = this;
 		}
 
-		void removeChild(GameObject* child) {
-			for (int i = 0; i < children_.size(); i++) {
-				if (children_[i] == child) {
-					children_.erase(children_.begin() + i);
-					child->parent_ = nullptr;
-					return;
-				}
-			}
-		}
+		//void draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty) {
+		//	dirty_ |= dirty  ;
+		//	if (dirty_) {
+		//		transform.getLocalModelMatrix(parent);
+		//		//world_ = local_;
+		//	}
 
-		void draw(Transform parent, glm::mat4 projection, glm::mat4 view, bool dirty) {
-			dirty_ |= dirty  ;
-			if (dirty_) {
-				local_->getLocalModelMatrix(parent);
-				//world_ = local_;
-			}
+		//	if (model_) {
+		//		model_->Draw(parent, &transform, projection, view, this->dirty_);
 
-			if (model_) {
-				model_->Draw(parent, local_, projection, view, this->dirty_);
-			}
+		//	}
 
-			for (unsigned int i = 0; i < children_.size(); i++)
+		//	for (unsigned int i = 0; i < children_.size(); i++)
+		//	{
+		//		children_[i]->draw(transform, projection, view, dirty_);
+		//	}
+		//		dirty_ = false;
+		//}
+
+		void draw(Shader& ourShader, unsigned int& display, unsigned int& total)
+		{
+			printName();
+
+			if (model_)
 			{
-				children_[i]->draw(*local_, projection, view, dirty_);
+				ourShader.setVec4("dynamicColor", color);
+				ourShader.setMat4("model", transform.getModelMatrix());
+				model_->Draw(ourShader);
+				display++;
 			}
-				dirty_ = false;
+			total++;
+
+			for (auto&& child : children_)
+			{
+				child->draw(ourShader, display, total);
+			}
+
+			ourShader.setVec4("dynamicColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 
-		void setParent(GameObject* parent) {
+		void updateSelfAndChild()
+		{
+			if (transform.isDirty()) {
+				forceUpdateSelfAndChild();
+				return;
+			}
+
+			for (auto&& child : children_)
+			{
+				child->updateSelfAndChild();
+			}
+		}
+
+		void forceUpdateSelfAndChild()
+		{
+			if (parent_)
+				transform.computeModelMatrix(parent_->transform.getModelMatrix());
+			else
+				transform.computeModelMatrix();
+
+			for (auto&& child : children_)
+			{
+				child->forceUpdateSelfAndChild();
+			}
+		}
+
+		/*void setParent(GameObject* parent) {
 			if (parent_ != nullptr) {
 				parent_->removeChild(this);
 			}
 			parent->addChild(this);
-		}
+		}*/
 
-		void setLocalPosition(const glm::vec3& position) {
-			local_->position = position;
+		/*void setLocalPosition(const glm::vec3& position) {
+			transform.position = position;
 			dirty_ = true;
 		}
 
 		void setLocalScale(const glm::vec3& scale) {
-			local_->scale = scale;
+			transform.scale = scale;
 			dirty_ = true;
 		}
 
 		void setLocalRotation(const glm::vec3& rotation) {
-			local_->eulerRot = rotation;
+			transform.eulerRot = rotation;
 			dirty_ = true;
-		}
+		}*/
 
-		void setTransform(Transform* local)
+		void setTransform(Transform local)
 		{
-			local_ = local;
+			transform = local;
 			dirty_ = true;
 		}
 
-		Transform* getLocalTransform() {
-			return local_;
+		void setColor(glm::vec4 color) {
+			this->color = color;
+		}
+
+		//znajdz dziecko po nazwie
+		GameObject* getChildByName(const std::string& name) {
+			for (auto& child : children_) {
+				if (child->name == name) {
+					return child.get();
+				}
+
+				GameObject* foundChild = child->getChildByName(name);
+				if (foundChild != nullptr) {
+					return foundChild;
+				}
+			}
+			return nullptr;
+		}
+
+		std::string getName() {
+			return name;
+		}
+
+		void printName() {
+			std::cout << name << std::endl;
+		}
+
+		Transform getLocalTransform() {
+			return transform;
 		}
 };
 

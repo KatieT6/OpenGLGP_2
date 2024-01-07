@@ -27,7 +27,7 @@ public:
     std::vector<Texture> textures;
     unsigned int VAO;
     /*  Funkcje  */
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures, const glm::mat4* instanceMatrices, unsigned int instanceCount);
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures,unsigned int instanceCount);
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
 
     void Draw(Shader shader);
@@ -37,8 +37,8 @@ private:
     unsigned int VBO, EBO;
     unsigned int instanceMatricesBuffer = 0;
     /*  Funkcje    */
-    void setupMesh(const glm::mat4* instanceMatrices, unsigned int instanceCount);
-    void setupMeshInstanced(const glm::mat4* instanceMatrices, unsigned int instanceCount);
+    void setupMesh(unsigned int instanceCount);
+    //void setupMeshInstanced(unsigned int instanceCount);
 };
 
 #endif // MESH_H

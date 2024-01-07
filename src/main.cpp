@@ -43,9 +43,14 @@ void do_Movement();
 // settings
 const unsigned int SCR_WIDTH = 1300;
 const unsigned int SCR_HEIGHT = 800;
+int rows = 50, cols = 50;
+int amount = rows * cols;
 
-const GLchar* vertexPath = "res/shaders/instance.vert";
-const GLchar* fragmentPath = "res/shaders/instance.frag";
+glm::mat4* houseModelMatrices;
+glm::mat4* roofModelMatrices;
+
+GameObject ROOT("ROOT");
+
 
 //camera
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
@@ -94,121 +99,121 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader instanceShader(vertexPath, fragmentPath);
+    Shader instanceShader("res/shaders/instance.vert", "res/shaders/instance.frag");
+    Shader ourShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
 
-    Model* domek = new Model("res/models/domek/domek.obj", vertexPath, fragmentPath);
-    Model* dach = new Model("res/models/dach/dach.obj", vertexPath, fragmentPath);
-    Model* plane = new Model("res/models/grass/plane.obj", vertexPath, fragmentPath);
-
-
-    GameObject* dachDriver = new GameObject();
-    GameObject* domekDriver = new GameObject();
+    Model domek("res/models/domek/domek.obj");
+    Model dach("res/models/dach/dach.obj");
+    Model podloga("res/models/grass/plane.obj");
 
 
-    GameObject* Root = new GameObject(plane);
-    GameObject* Domek = new GameObject(domek);
-    GameObject* Dach = new GameObject(dach);    
+    /*GameObject* Root = new GameObject(root, &instanceShader);
+    GameObject* Domek = new GameObject(domek, &instanceShader);
+    GameObject* Dach = new GameObject(dach, &instanceShader);
+    Root->setLocalPosition(glm::vec3(0.0f, 0.0f, 0.0f));*/
 
-    Root->setLocalScale(glm::vec3(1.0f, 1.0f, 1.0f));
+    ROOT.transform.setLocalPosition({ 0, 0, 0 });
+    const float scale = 1;
+    ROOT.transform.setLocalScale({ scale, scale, scale });
 
-
-    Dach->setLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-    Root->setLocalPosition(glm::vec3(0.0f, 0.0f, 0.0f));
-
-    dachDriver->addChild(Dach);
-    domekDriver->addChild(Domek);
-
-    Domek->addChild(dachDriver);
-    Root->addChild(domekDriver);
+    //podloga
+    std::string nazwaPodlogi = "podloga";
+    ROOT.addChild(nazwaPodlogi);
+    GameObject* Podloga = ROOT.getChildByName(nazwaPodlogi);
+    Podloga->transform.setLocalPosition(glm::vec3({ 0, -1, 0 }));
+    Podloga->transform.setLocalScale(glm::vec3({ 1000, 0.1, 1000 }));
+    Podloga->updateSelfAndChild();
 
     // Instanced matrices setup
-    int rows = 200, cols = 200;
-    int amount = rows * cols;
 
-    std::vector<Transform*> domekTransforms;
-    std::vector<Transform*> dachTransforms;
-
-    auto planeTransform = Root->getLocalTransform();
-
-    //glm::mat4 tmp = glm::translate(glm::mat4(1.0f), { -400, 0, -400 });
-    //for (auto i = 0; i < cols; i++) {
-    //    glm::mat4 model(1.0f);
-    //    for (auto j = 0; j < rows; j++) {
-    //        auto houseTransform = new Transform();
-    //        auto roofTransform = new Transform();
-
-    //        tmp = glm::translate(tmp, glm::vec3(4.0f, 0.0f, 0.0f));
-    //        model = glm::translate(tmp, glm::vec3(0.0f, 1.5f, 0.0f));
-
-    //        houseTransform->getLocalModelMatrix(model);
-    //        houseTransform->setParent(neighbourhoodTransform);
-
-    //        houseTransforms.emplace_back(houseTransform);
-
-    //        roofTransform->setLocalPosition(glm::vec3(0.0f, 2.0f, 0.0f));
-    //        roofTransform->setParent(houseTransforms.back());
-
-    //        roofTransforms.emplace_back(roofTransform);
-    //    }
-    //    tmp = glm::translate(tmp, glm::vec3(-1.0f * static_cast<float>(rows) * 4.0f, 0.0f, 4.0f));
-    //}
-
-    //// Create instanced entities
-    //auto house = new InstancedEntity(houseModel, &lightShader, houseTransforms);
-    //auto roof = new InstancedEntity(roofModel, &lightShader, roofTransforms);
 
     // generate a large list of semi-random model transformation matrices
     // ------------------------------------------------------------------
-    glm::mat4* modelMatrices;
-    modelMatrices = new glm::mat4[amount];
+    houseModelMatrices = new glm::mat4[amount];
+    roofModelMatrices = new glm::mat4[amount];
+
+    float offset = 10.0f;
+    int index = 0;
+
     glm::mat4 tmp = glm::translate(glm::mat4(1.0f), { -400, 0, -400 });
+    glm::mat4 up = glm::mat4(1.0f);
     for (unsigned int i = 0; i < cols; i++)
     {
         glm::mat4 model = glm::mat4(1.0f);
         for (unsigned int j = 0; j < rows; j++)
         {
-            // 1. translation: displace along circle with 'radius' in range [-offset, offset]
-            tmp = glm::translate(tmp, glm::vec3(4.0f, 0.0f, 0.0f));
-            model = glm::translate(tmp, glm::vec3(0.0f,-1.0f, 0.0f));
+            //domek
+            std::string nazwaDomku = "Domek nr " + std::to_string(index);
+            ROOT.addChild(nazwaDomku);
+            GameObject* Domek = ROOT.getChildByName(nazwaDomku);
 
-            // 4. now add to list of matrices
-            modelMatrices[i * rows + j] = model;
+            // Ustaw transformacjê dla ka¿dego domku
+            float x = i * offset;
+            float y = 0;
+            float z = j * offset;
+            Domek->transform.setLocalPosition(glm::vec3(x, y, z));
+            Domek->transform.setLocalScale(glm::vec3(1));
+            Domek->forceUpdateSelfAndChild();
+            houseModelMatrices[index] = Domek->transform.getModelMatrix();
+
+            //dach
+            std::string nazwaDachu = "Dach nr " + std::to_string(index);
+            Domek->addChild(dach, nazwaDachu);
+            GameObject* Dach = Domek->getChildByName(nazwaDachu);
+
+            // Ustaw transformacjê dla ka¿dego dachu
+            x = 0;
+            y = 0;
+            z = 0;
+            Dach->transform.setLocalPosition(glm::vec3(x, y, z));
+            Dach->transform.setLocalScale(glm::vec3(1));
+            Dach->forceUpdateSelfAndChild();
+            roofModelMatrices[index] = Dach->transform.getModelMatrix();
+
+            index++;
         }
         tmp = glm::translate(tmp, glm::vec3(-1.0f * static_cast<float>(rows) * 4.0f, 0.0f, 4.0f));
     }
 
+
+     
     // configure instanced array
     // -------------------------
-    unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+    unsigned int houseBuffer;
+    glGenBuffers(1, &houseBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, houseBuffer);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &houseModelMatrices[0], GL_STATIC_DRAW);
+
+    unsigned int roofBuffer;
+    glGenBuffers(1, &roofBuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, roofBuffer);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &roofModelMatrices[0], GL_STATIC_DRAW);
 
     // set transformation matrices as an instance vertex attribute (with divisor 1)
     // note: we're cheating a little by taking the, now publicly declared, VAO of the model's mesh(es) and adding new vertexAttribPointers
     // normally you'd want to do this in a more organized fashion, but for learning purposes this will do.
     // -----------------------------------------------------------------------------------------------------------------------------------
-    for (unsigned int i = 0; i < Domek->model_->meshes.size(); i++)
-    {
-        unsigned int VAO = Domek->model_->meshes[i].VAO;
-        glBindVertexArray(VAO);
-        // set attribute pointers for matrix (4 times vec4)
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+    //for (unsigned int i = 0; i < Domek->model_->meshes.size(); i++)
+    //{
+    //    unsigned int VAO = Domek->model_->meshes[i].VAO;
+    //    glBindVertexArray(VAO);
+    //    // set attribute pointers for matrix (4 times vec4)
+    //    glEnableVertexAttribArray(3);
+    //    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+    //    glEnableVertexAttribArray(4);
+    //    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+    //    glEnableVertexAttribArray(5);
+    //    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+    //    glEnableVertexAttribArray(6);
+    //    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
 
-        glVertexAttribDivisor(3, 1);
-        glVertexAttribDivisor(4, 1);
-        glVertexAttribDivisor(5, 1);
-        glVertexAttribDivisor(6, 1);
+    //    glVertexAttribDivisor(3, 1);
+    //    glVertexAttribDivisor(4, 1);
+    //    glVertexAttribDivisor(5, 1);
+    //    glVertexAttribDivisor(6, 1);
 
-        glBindVertexArray(0);
-    }
+    //    glBindVertexArray(0);
+    //}
 
 
         // render loop
@@ -231,29 +236,75 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
 
-        //to ma byæw kodzie wszstko 
-        instanceShader.use();
-        instanceShader.setMat4("projection", projection);
-        instanceShader.setMat4("view", view);
+        ourShader.use();
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
 
-        // draw meteorites
-        instanceShader.use();
-        instanceShader.setInt("texture_diffuse1", 0);
+        ROOT.updateSelfAndChild();
 
-        //to w sumie jest funkcja draw
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Domek->model_->textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
-        for (unsigned int i = 0; i < Domek->model_->meshes.size(); i++)
-        {
-            glBindVertexArray(Domek->model_->meshes[i].VAO);
-            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(Domek->model_->meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
+        glBindTexture(GL_TEXTURE_2D, podloga.textures_loaded[0].id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        ourShader.setInt("texture_diffuse1", 0);
+
+        ourShader.setMat4("projection", projection);
+        ourShader.setMat4("view", view);
+        ourShader.setMat4("model", Podloga->transform.getModelMatrix());
+
+
+        for (unsigned int i = 0; i < podloga.meshes.size(); i++) {
+            unsigned int VAO = podloga.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(podloga.meshes[i].indices.size()), GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
         }
 
-        
-        //Root->setLocalRotation(glm::vec3(0.0f, 0 /*currentFrame * (worldSpeed)*/, glm::radians(45.0f)));
+        instanceShader.use();
+        instanceShader.setInt("texture_diffuse1", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, domek.textures_loaded[0].id);
+        for (unsigned int i = 0; i < domek.meshes.size(); i++)
+        {
+            unsigned int VAO = domek.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, houseBuffer);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+            glVertexAttribDivisor(3, 1);
+            glVertexAttribDivisor(4, 1);
+            glVertexAttribDivisor(5, 1);
+            glVertexAttribDivisor(6, 1);
 
-        //Root->draw(Transform(), projection, view, true);
+            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(domek.meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
+            glBindVertexArray(0);
+        }
+
+        //samo renderowanie wszystkich dachow
+        instanceShader.setInt("texture_diffuse1", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, dach.textures_loaded[0].id);
+        for (unsigned int i = 0; i < dach.meshes.size(); i++)
+        {
+            unsigned int VAO = dach.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glBindBuffer(GL_ARRAY_BUFFER, roofBuffer);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(sizeof(glm::vec4)));
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(2 * sizeof(glm::vec4)));
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)(3 * sizeof(glm::vec4)));
+            glVertexAttribDivisor(3, 1);
+            glVertexAttribDivisor(4, 1);
+            glVertexAttribDivisor(5, 1);
+            glVertexAttribDivisor(6, 1);
+
+            glDrawElementsInstanced(GL_TRIANGLES, static_cast<unsigned int>(dach.meshes[i].indices.size()), GL_UNSIGNED_INT, 0, amount);
+
+            glBindVertexArray(0);
+        }
+
 
         if (show_tool_window)
         {
@@ -282,14 +333,14 @@ void do_Movement()
     GLfloat cameraSpeed = 2.5f * deltaTime;
 };
 
-void drawOrbit(GameObject* parentObject, int radius, int noOfVertices)
-{
-    Shader orbitShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
-    Mesh orbitMesh = buildElipse(0, 0, radius, radius, noOfVertices, orbitShader);
-    Model* orbitModel = new Model(orbitMesh, "res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
-    GameObject* orbitObject = new GameObject(orbitModel);
-    parentObject->addChild(orbitObject);
-};
+//void drawOrbit(GameObject* parentObject, int radius, int noOfVertices)
+//{
+//    Shader orbitShader("res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
+//    Mesh orbitMesh = buildElipse(0, 0, radius, radius, noOfVertices, orbitShader);
+//    Model* orbitModel = new Model(orbitMesh, "res/shaders/loadModel.vert", "res/shaders/loadModel.frag");
+//    GameObject* orbitObject = new GameObject(orbitModel);
+//    parentObject->addChild(orbitObject);
+//};
 
 
 

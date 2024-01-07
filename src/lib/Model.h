@@ -26,7 +26,7 @@ public:
     Shader shader;
     glm::vec4 color;
     /*  Funkcje   */
-    Model(const char* path, const glm::mat4* instanceMatrices, const unsigned int instanceCount)
+    Model(std::string const& path, bool gamma = false)
     {
         color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         loadModel(path);
@@ -51,12 +51,13 @@ public:
 
     void Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty);
     void Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local);
-    void DrawInstanced(glm::mat4 projection, glm::mat4 view, glm::mat4 local, Shader& shader, unsigned int instanceCount);
+    //void DrawInstanced(Shader& shader, unsigned int instanceCount);
+    void Draw(Shader shader);
 private:
     /*  Funkcje   */
     void loadModel(std::string path);
     void processNode(aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene, const glm::mat4* instanceMatrices, unsigned int instanceCount);
+    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
     std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type, std::string typeName);
 };
 

@@ -55,9 +55,20 @@ void InstancedGameObject::draw(Transform parent, glm::mat4 projection, glm::mat4
 {
     updateInstanceMatrixBuffer();
 
-    if (model_ != nullptr) {
-        shader_->use();
-        model_->DrawInstanced(instanceTransforms.size());
-    }
+    //dirty_ |= dirty;
+    //if (dirty_) {
+    //    local_->getLocalModelMatrix(parent);
+    //    //world_ = local_;
+    //}
 
+    //if (model_) {
+    //    //model_->Draw(parent, local_, projection, view, this->dirty_);
+    //    model_->DrawInstanced(projection, view, local_->modelMatrix, *shader_, static_cast<unsigned int>(instanceTransforms.size()));
+    //}
+
+    //for (unsigned int i = 0; i < children_.size(); i++)
+    //{
+    //    children_[i]->draw(*local_, projection, view, dirty_);
+    //}
+    //dirty_ = false;
 }
