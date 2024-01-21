@@ -8,11 +8,11 @@
 
 class Transform
 {
-protected:
+public:
     //lokalna pozycja
-    glm::vec3 m_pos = { 0.0f, 0.0f, 0.0f };
-    glm::vec3 m_eulerRot = { 0.0f, 0.0f, 0.0f }; //w stopniach
-    glm::vec3 m_scale = { 1.0f, 1.0f, 1.0f };
+    glm::vec3 position = { 0.0f, 0.0f, 0.0f };
+    glm::vec3 eulerRot = { 0.0f, 0.0f, 0.0f }; //w stopniach
+    glm::vec3 scale = { 1.0f, 1.0f, 1.0f };
 
     //pozycja globalna w macierzy
     glm::mat4 m_modelMatrix = glm::mat4(1.0f);
@@ -20,23 +20,22 @@ protected:
     //brudna flaga
     bool m_isDirty = true;
 
-protected:
 
     //zwroc lokalna macierz
     glm::mat4 getLocalModelMatrix()
     {
         //macierze obrotow
-        const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f), glm::radians(m_eulerRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
-        const glm::mat4 transformY = glm::rotate(glm::mat4(1.0f), glm::radians(m_eulerRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-        const glm::mat4 transformZ = glm::rotate(glm::mat4(1.0f), glm::radians(m_eulerRot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+        const glm::mat4 transformX = glm::rotate(glm::mat4(1.0f), glm::radians(eulerRot.x), glm::vec3(1.0f, 0.0f, 0.0f));
+        const glm::mat4 transformY = glm::rotate(glm::mat4(1.0f), glm::radians(eulerRot.y), glm::vec3(0.0f, 1.0f, 0.0f));
+        const glm::mat4 transformZ = glm::rotate(glm::mat4(1.0f), glm::radians(eulerRot.z), glm::vec3(0.0f, 0.0f, 1.0f));
 
         //polaczenie macierzy obrotow
         const glm::mat4 rotationMatrix = transformY * transformX * transformZ;
 
         //polaczenie wszystkich macierzy w jedna
-        return glm::translate(glm::mat4(1.0f), m_pos) * rotationMatrix * glm::scale(glm::mat4(1.0f), m_scale);
+        return glm::translate(glm::mat4(1.0f), position) * rotationMatrix * glm::scale(glm::mat4(1.0f), scale);
     }
-public:
+
 
     //po zmianach ustaw brudna flage na false
     void computeModelMatrix()
@@ -54,19 +53,19 @@ public:
     //zmien dana rzecz i ustaw brudna flage na true, co oznacza, ze wymagana jest aktualizacja
     void setLocalPosition(const glm::vec3& newPosition)
     {
-        m_pos = newPosition;
+        position = newPosition;
         m_isDirty = true;
     }
 
     void setLocalRotation(const glm::vec3& newRotation)
     {
-        m_eulerRot = newRotation;
+        eulerRot = newRotation;
         m_isDirty = true;
     }
 
     void setLocalScale(const glm::vec3& newScale)
     {
-        m_scale = newScale;
+        scale = newScale;
         m_isDirty = true;
     }
 
@@ -78,17 +77,17 @@ public:
 
     const glm::vec3& getLocalPosition() const
     {
-        return m_pos;
+        return position;
     }
 
     const glm::vec3& getLocalRotation() const
     {
-        return m_eulerRot;
+        return eulerRot;
     }
 
     const glm::vec3& getLocalScale() const
     {
-        return m_scale;
+        return scale;
     }
 
     const glm::mat4& getModelMatrix() const

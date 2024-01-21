@@ -15,13 +15,14 @@ protected:
 
 public:
 		std::string name;
+		int ID = 0;
 		glm::vec4 color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		Shader* shader_ = nullptr;
 		Model* model_ = nullptr;
 		Transform transform;
 
-		GameObject(Model* model, Shader* shader)
-			: model_(model), shader_(shader) {}
+		/*GameObject(Model* model, Shader* shader)
+			: model_(model), shader_(shader) {}*/
 
 		GameObject() {
 			model_ = NULL;
@@ -33,10 +34,10 @@ public:
 			name = nameofObj;
 		}
 
-		/*void addChild(GameObject* child) {
+		void addChild(GameObject* child) {
 			children_.emplace_back(child);
 			child->parent_ = this;
-		}*/
+		}
 
 		template<typename... TArgs>
 		void addChild(TArgs&... args)
@@ -64,41 +65,37 @@ public:
 		//		dirty_ = false;
 		//}
 
-		void draw(Shader& ourShader, unsigned int& display, unsigned int& total)
+		void draw(Shader& ourShader)
 		{
-			printName();
-
 			if (model_)
 			{
 				ourShader.setVec4("dynamicColor", color);
 				ourShader.setMat4("model", transform.getModelMatrix());
-				model_->Draw(ourShader);
-				display++;
+				model_->Draw(ourShader);	
 			}
-			total++;
 
 			for (auto&& child : children_)
 			{
-				child->draw(ourShader, display, total);
+				child->draw(ourShader);
 			}
 
 			ourShader.setVec4("dynamicColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 		}
 
-		void updateSelfAndChild()
+		void update()
 		{
 			if (transform.isDirty()) {
-				forceUpdateSelfAndChild();
+				forceUpdate();
 				return;
 			}
 
 			for (auto&& child : children_)
 			{
-				child->updateSelfAndChild();
+				child->update();
 			}
 		}
 
-		void forceUpdateSelfAndChild()
+		void forceUpdate()
 		{
 			if (parent_)
 				transform.computeModelMatrix(parent_->transform.getModelMatrix());
@@ -107,18 +104,15 @@ public:
 
 			for (auto&& child : children_)
 			{
-				child->forceUpdateSelfAndChild();
+				child->forceUpdate();
 			}
 		}
 
-		/*void setParent(GameObject* parent) {
-			if (parent_ != nullptr) {
-				parent_->removeChild(this);
-			}
+		void setParent(GameObject* parent) {
 			parent->addChild(this);
-		}*/
+		}
 
-		/*void setLocalPosition(const glm::vec3& position) {
+		void setLocalPosition(const glm::vec3& position) {
 			transform.position = position;
 			dirty_ = true;
 		}
@@ -131,7 +125,7 @@ public:
 		void setLocalRotation(const glm::vec3& rotation) {
 			transform.eulerRot = rotation;
 			dirty_ = true;
-		}*/
+		}
 
 		void setTransform(Transform local)
 		{

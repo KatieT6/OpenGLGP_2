@@ -12,6 +12,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <stb_image.h>
+using namespace std;
 
 
 unsigned int TextureFromFile(const char* path, const std::string& directory);
@@ -23,19 +24,15 @@ public:
     std::vector<Mesh> meshes;
     std::string directory;
     std::vector<Texture> textures_loaded;
-    Shader shader;
-    glm::vec4 color;
+    bool gammaCorrection;
     /*  Funkcje   */
-    Model(std::string const& path, bool gamma = false)
+    Model(std::string const& path, bool gamma = false) : gammaCorrection(gamma)
     {
-        color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         loadModel(path);
     }
 
     Model(Mesh mesh, const GLchar* vertexPath, const GLchar* fragmentPath)
 	{
-		shader = Shader(vertexPath, fragmentPath);
-        color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		meshes.push_back(mesh);
 	}
 
@@ -44,15 +41,9 @@ public:
 		this->meshes = meshes;
 	}
 
-    void setColor(glm::vec4 color)
-	{
-		this->color = color;
-	}
-
-    void Draw(Transform parent, Transform* local, glm::mat4 projection, glm::mat4 view, bool dirty);
-    void Draw(glm::mat4 projection, glm::mat4 view, glm::mat4 local);
-    //void DrawInstanced(Shader& shader, unsigned int instanceCount);
     void Draw(Shader shader);
+
+    //void DrawInstanced(Shader& shader, unsigned int instanceCount);
 private:
     /*  Funkcje   */
     void loadModel(std::string path);
