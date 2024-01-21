@@ -38,8 +38,7 @@ public:
     /*  Funkcje  */
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::vector<Texture> textures);
 
-    void 
-    (Shader shader);
+    void Draw(Shader shader);
     void DrawInstanced(Shader shader, int count);
 private:
     /*  Dane renderowania  */
