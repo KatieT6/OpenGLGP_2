@@ -51,6 +51,7 @@ void Mesh::Draw(Shader shader)
 
     // always good practice to set everything back to defaults once configured.
     glActiveTexture(GL_TEXTURE0);
+
 }
 
 void Mesh::DrawInstanced(Shader shader, int count = 2500)

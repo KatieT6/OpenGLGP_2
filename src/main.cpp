@@ -17,6 +17,7 @@
 #include <Transform.h>
 #include <Sphere.h>
 #include <Elipse.h>
+#include <SkyBox.h>
 
 #include <iostream>
 
@@ -51,7 +52,7 @@ bool cursorActive = true;
 // settings
 const unsigned int SCR_WIDTH = 1300;
 const unsigned int SCR_HEIGHT = 800;
-int rows = 200, cols = 200;
+int rows = 10, cols = 10;
 int amount = rows * cols;
 
 glm::mat4* houseModelMatrices;
@@ -138,6 +139,8 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
     Shader instanceShader("res/shaders/instance.vert", "res/shaders/instance.frag");
+    Shader reflectiveShader("res/shaders/reflective_shader.vert", "res/shaders/reflective_shader.frag");
+   // Shader refractiveShader("res/shaders/refractive_shader.vert", "res/shaders/refractive.frag");
 
     Model domek("res/models/domek/domek.obj");
     Model dach("res/models/dach/dach.obj");
@@ -146,6 +149,11 @@ int main()
     Model cube1("res/models/light/cube.obj"); //spotlight1
     Model cube2("res/models/light/cube.obj"); //spotlight2
     Model cone("res/models/light/dir.obj"); //dirlight
+    Model kadlub("res/models/plane/kadlub.obj"); //kadlub"
+    Model skrzydloglowne("res/models/plane/skrzydlo-glowne.obj"); //skrzydla glowne
+    Model skrzydlokierunkowe("res/models/plane/skrzydlo-kierunkowe.obj"); //skrzydla kierunkowe
+
+    SkyBox skybox;
 
     ROOT.transform.setLocalPosition({ 0, 0, 0 });
     const float scale = 1;
@@ -156,9 +164,26 @@ int main()
     ROOT.addChild(nazwaPodlogi);
     GameObject* Podloga = ROOT.getChildByName(nazwaPodlogi);
     Podloga->transform.setLocalPosition(glm::vec3({ 0, 0, 0 }));
-    Podloga->transform.setLocalScale(glm::vec3({ 20, 1, 20 }));
+    Podloga->transform.setLocalScale(glm::vec3({ 400, 1, 400 }));
     Podloga->update();
 
+#pragma region samolot
+    std::string nazwaKadluba = "kadlub";
+    ROOT.addChild(nazwaKadluba);
+    GameObject* Kadlub = ROOT.getChildByName(nazwaKadluba);
+
+    std::string nazwaSkrzydelGlownych = "skrzydloglowne";
+    ROOT.addChild(skrzydloglowne, nazwaSkrzydelGlownych);
+    GameObject* SkrzydlaGlowne = ROOT.getChildByName(nazwaSkrzydelGlownych);
+
+    std::string nazwaSkrzydelKierunkowych = "skrzydlokierunkowe";
+    ROOT.addChild(skrzydlokierunkowe, nazwaSkrzydelKierunkowych);
+    GameObject* SkrzydlaKierunkowe = ROOT.getChildByName(nazwaSkrzydelKierunkowych);
+
+
+#pragma endregion samolot
+
+#pragma region swiatelka
     //Reflektor1
     string namespotlight = "spotlight1";
     ROOT.addChild(namespotlight);
@@ -188,7 +213,7 @@ int main()
     ROOT.addChild(namepointlight);
     GameObject* Pointlight = ROOT.getChildByName(namepointlight);
 
-
+#pragma endregion swiatelka
 
     // Instanced matrices setup
 
@@ -294,6 +319,9 @@ int main()
 
     GLfloat currentFrame = 0.0f;
 
+    reflectiveShader.setInt("texture1", 0);
+    reflectiveShader.setInt("skybox", 1);
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -304,7 +332,7 @@ int main()
 
         glClearColor(10.0f / 255.0f, 2.0f / 255.0f, 28.0f / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
-
+        instanceShader.use();
         instanceShader.setVec4("dynamicColor", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
 
@@ -458,8 +486,66 @@ int main()
             glBindVertexArray(0);
         }
 
+        glBindTexture(GL_TEXTURE_2D, 0);
 
+
+        reflectiveShader.use();
+        reflectiveShader.setMat4("projection", projection);
+        reflectiveShader.setMat4("view", view);
+
+        Kadlub->transform.setLocalScale({ 5,5,5 });
+        Kadlub->transform.setLocalPosition({ 0,2,0 });
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, kadlub.textures_loaded[0].id);
+        instanceShader.setInt("texture_diffuse1", 0);
+        Kadlub->transform.setLocalPosition({ posSpot1X, posSpot1Y, posSpot1Z });
+        reflectiveShader.setMat4("projection", projection);
+        reflectiveShader.setMat4("view", view);
+        reflectiveShader.setMat4("model", Kadlub->transform.getModelMatrix());
+
+
+        for (unsigned int i = 0; i < kadlub.meshes.size(); i++) {
+            unsigned int VAO = kadlub.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(kadlub.meshes[i].indices.size()), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        reflectiveShader.use();
+        reflectiveShader.setMat4("projection", projection);
+        reflectiveShader.setMat4("view", view);
+
+        SkrzydlaGlowne->transform.setLocalScale({ 5,5,5 });
+        SkrzydlaGlowne->transform.setLocalPosition({ 0,2,0 });
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, skrzydloglowne.textures_loaded[0].id);
+        instanceShader.setInt("texture_diffuse1", 0);
+        SkrzydlaGlowne->transform.setLocalPosition({ posSpot1X, posSpot1Y, posSpot1Z });
+        reflectiveShader.setMat4("projection", projection);
+        reflectiveShader.setMat4("view", view);
+        reflectiveShader.setMat4("model", SkrzydlaGlowne->transform.getModelMatrix());
+
+
+        for (unsigned int i = 0; i < skrzydloglowne.meshes.size(); i++) {
+            unsigned int VAO = skrzydloglowne.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(skrzydloglowne.meshes[i].indices.size()), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+
+#pragma region swiatla
         //reflektor1
+
+        instanceShader.use();
+        instanceShader.setBool("isInstanced", false);
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cube1.textures_loaded[0].id);
         instanceShader.setInt("texture_diffuse1", 0);
@@ -555,6 +641,10 @@ int main()
             glBindVertexArray(0);
         }
 
+#pragma endregion
+
+#pragma region rysowanie-domkow
+
         //samo renderowanie wszystkich dachow
         instanceShader.setInt("texture_diffuse1", 0);
         glActiveTexture(GL_TEXTURE0);
@@ -567,9 +657,11 @@ int main()
 
             glBindVertexArray(0);
         }
+#pragma endregion
 
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
 
-        
+        skybox.DrawSkyBox(view, projection);
 
         //switch cursore mode on tab
         if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)

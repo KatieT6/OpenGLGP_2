@@ -49,7 +49,7 @@ uniform SpotLight spotLights[NO_SPOT_LIGHTS];
 uniform PointLight pointLights[NO_POINT_LIGHTS];
 
 
-void main()s
+void main()
 {
     vec3 norm = normalize(Normal);
     vec3 viewDir = normalize(viewPos - FragPos);
