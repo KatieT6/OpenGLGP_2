@@ -33,7 +33,7 @@ static void glfw_error_callback(int error, const char* description)
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 unsigned int loadTexture(char const* path);
-void processInput(GLFWwindow* window, bool cursorMode);
+void processInput(GLFWwindow* window, bool cursorMode, GameObject* plane);
 void switchCursorMode(GLFWwindow* window, bool active);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -59,6 +59,7 @@ glm::mat4* houseModelMatrices;
 glm::mat4* roofModelMatrices;
 
 GameObject ROOT("ROOT");
+GameObject CameraObject("Camera");
 
 #pragma region zmienne do transformacji itp
 bool moveDomek = false;
@@ -101,7 +102,10 @@ bool firstMouse = true;
 
 bool show_tool_window = true;
 bool show_wireframe = false;
+bool isOnFreemode = true;
+bool firstTime = true;
 
+glm::vec3 tmp = glm::vec3(glm::vec3(0.0, 0, 0));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -136,11 +140,13 @@ int main()
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
 
+    camera.MovementSpeed = 10.0f;
+
     glEnable(GL_DEPTH_TEST);
 
     Shader instanceShader("res/shaders/instance.vert", "res/shaders/instance.frag");
     Shader reflectiveShader("res/shaders/reflective_shader.vert", "res/shaders/reflective_shader.frag");
-   // Shader refractiveShader("res/shaders/refractive_shader.vert", "res/shaders/refractive.frag");
+    Shader refractiveShader("res/shaders/reflective_shader.vert", "res/shaders/refractive.frag");
 
     Model domek("res/models/domek/domek.obj");
     Model dach("res/models/dach/dach.obj");
@@ -151,34 +157,49 @@ int main()
     Model cone("res/models/light/dir.obj"); //dirlight
     Model kadlub("res/models/plane/kadlub.obj"); //kadlub"
     Model skrzydloglowne("res/models/plane/skrzydlo-glowne.obj"); //skrzydla glowne
-    Model skrzydlokierunkowe("res/models/plane/skrzydlo-kierunkowe.obj"); //skrzydla kierunkowe
+    Model skrzydlokierunkowePrawe("res/models/plane/skrzydlo-kierunkowe-prawe.obj"); //skrzydla kierunkowe
+    Model skrzydlokierunkoweLewe("res/models/plane/skrzydlo-kierunkowe-lewe.obj"); //skrzydla kierunkowe
 
-    SkyBox skybox;
+    
 
     ROOT.transform.setLocalPosition({ 0, 0, 0 });
+    CameraObject.transform.setLocalPosition({ 5, 5, 0 });
     const float scale = 1;
     ROOT.transform.setLocalScale({ scale, scale, scale });
+    CameraObject.forceUpdate();
 
     //podloga
     std::string nazwaPodlogi = "podloga";
     ROOT.addChild(nazwaPodlogi);
     GameObject* Podloga = ROOT.getChildByName(nazwaPodlogi);
     Podloga->transform.setLocalPosition(glm::vec3({ 0, 0, 0 }));
-    Podloga->transform.setLocalScale(glm::vec3({ 400, 1, 400 }));
+    Podloga->transform.setLocalScale(glm::vec3({ 20, 1, 20 }));
     Podloga->update();
 
 #pragma region samolot
     std::string nazwaKadluba = "kadlub";
-    ROOT.addChild(nazwaKadluba);
-    GameObject* Kadlub = ROOT.getChildByName(nazwaKadluba);
+    CameraObject.addChild(nazwaKadluba);
+    GameObject* Kadlub = CameraObject.getChildByName(nazwaKadluba);
+    Kadlub->forceUpdate();
 
     std::string nazwaSkrzydelGlownych = "skrzydloglowne";
-    ROOT.addChild(skrzydloglowne, nazwaSkrzydelGlownych);
-    GameObject* SkrzydlaGlowne = ROOT.getChildByName(nazwaSkrzydelGlownych);
+    Kadlub->addChild(skrzydloglowne, nazwaSkrzydelGlownych);
+    GameObject* SkrzydlaGlowne = Kadlub->getChildByName(nazwaSkrzydelGlownych);
 
-    std::string nazwaSkrzydelKierunkowych = "skrzydlokierunkowe";
-    ROOT.addChild(skrzydlokierunkowe, nazwaSkrzydelKierunkowych);
-    GameObject* SkrzydlaKierunkowe = ROOT.getChildByName(nazwaSkrzydelKierunkowych);
+    SkrzydlaGlowne->forceUpdate();
+
+    std::string nazwaSkrzydelKierunkowych = "skrzydlokierunkowePrawe";
+    SkrzydlaGlowne->addChild(skrzydlokierunkowePrawe, nazwaSkrzydelKierunkowych);
+    GameObject* SkrzydlaKierunkowePrawe = SkrzydlaGlowne->getChildByName(nazwaSkrzydelKierunkowych);
+
+    SkrzydlaKierunkowePrawe->forceUpdate();
+
+    std::string nazwaSkrzydelKierunkowych2 = "skrzydlokierunkoweLewe";
+    SkrzydlaGlowne->addChild(skrzydlokierunkoweLewe, nazwaSkrzydelKierunkowych2);
+    GameObject* SkrzydlaKierunkoweLewe = SkrzydlaGlowne->getChildByName(nazwaSkrzydelKierunkowych2);
+
+    SkrzydlaKierunkoweLewe->forceUpdate();
+
 
 
 #pragma endregion samolot
@@ -322,13 +343,23 @@ int main()
     reflectiveShader.setInt("texture1", 0);
     reflectiveShader.setInt("skybox", 1);
 
+    camera.updateCameraVectors();
+
+    stbi_set_flip_vertically_on_load(false);
+    SkyBox skybox;
+    stbi_set_flip_vertically_on_load(true);
+
+    Kadlub->transform.setLocalPosition(glm::vec3(18, -3, 0));
+    //Kadlub->transform.setLocalRotation(glm::vec3((0, 180, 0)));
+    CameraObject.update();
+
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        processInput(window, &cursorActive);
 
         glClearColor(10.0f / 255.0f, 2.0f / 255.0f, 28.0f / 255.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
@@ -488,21 +519,23 @@ int main()
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
+        instanceShader.setBool("isInstanced", false);
 
-        reflectiveShader.use();
-        reflectiveShader.setMat4("projection", projection);
-        reflectiveShader.setMat4("view", view);
+        instanceShader.use();
+        instanceShader.setMat4("projection", projection);
+        instanceShader.setMat4("view", view);
 
-        Kadlub->transform.setLocalScale({ 5,5,5 });
-        Kadlub->transform.setLocalPosition({ 0,2,0 });
+        
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, kadlub.textures_loaded[0].id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         instanceShader.setInt("texture_diffuse1", 0);
-        Kadlub->transform.setLocalPosition({ posSpot1X, posSpot1Y, posSpot1Z });
-        reflectiveShader.setMat4("projection", projection);
-        reflectiveShader.setMat4("view", view);
-        reflectiveShader.setMat4("model", Kadlub->transform.getModelMatrix());
+        //Kadlub->forceUpdate();
+        instanceShader.setMat4("projection", projection);
+        instanceShader.setMat4("view", view);
+        instanceShader.setMat4("model", Kadlub->transform.getModelMatrix());
 
 
         for (unsigned int i = 0; i < kadlub.meshes.size(); i++) {
@@ -515,16 +548,13 @@ int main()
         glBindTexture(GL_TEXTURE_2D, 0);
 
         reflectiveShader.use();
-        reflectiveShader.setMat4("projection", projection);
-        reflectiveShader.setMat4("view", view);
-
-        SkrzydlaGlowne->transform.setLocalScale({ 5,5,5 });
-        SkrzydlaGlowne->transform.setLocalPosition({ 0,2,0 });
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, skrzydloglowne.textures_loaded[0].id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        //SkrzydlaGlowne->forceUpdate();
         instanceShader.setInt("texture_diffuse1", 0);
-        SkrzydlaGlowne->transform.setLocalPosition({ posSpot1X, posSpot1Y, posSpot1Z });
         reflectiveShader.setMat4("projection", projection);
         reflectiveShader.setMat4("view", view);
         reflectiveShader.setMat4("model", SkrzydlaGlowne->transform.getModelMatrix());
@@ -538,6 +568,52 @@ int main()
         }
 
         glBindTexture(GL_TEXTURE_2D, 0);
+
+        refractiveShader.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, skrzydlokierunkoweLewe.textures_loaded[0].id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        //SkrzydlaKierunkoweLewe->forceUpdate();
+        refractiveShader.setInt("texture_diffuse1", 0);
+        refractiveShader.setMat4("projection", projection);
+        refractiveShader.setMat4("view", view);
+        refractiveShader.setMat4("model", SkrzydlaKierunkoweLewe->transform.getModelMatrix());
+
+
+        for (unsigned int i = 0; i < skrzydlokierunkoweLewe.meshes.size(); i++) {
+            unsigned int VAO = skrzydlokierunkoweLewe.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(skrzydlokierunkoweLewe.meshes[i].indices.size()), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        refractiveShader.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, skrzydlokierunkowePrawe.textures_loaded[0].id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        //SkrzydlaKierunkowePrawe->forceUpdate();
+        refractiveShader.setInt("texture_diffuse1", 0);
+        refractiveShader.setMat4("projection", projection);
+        refractiveShader.setMat4("view", view);
+        refractiveShader.setMat4("model", SkrzydlaKierunkowePrawe->transform.getModelMatrix());
+
+
+        for (unsigned int i = 0; i < skrzydlokierunkowePrawe.meshes.size(); i++) {
+            unsigned int VAO = skrzydlokierunkowePrawe.meshes[i].VAO;
+            glBindVertexArray(VAO);
+            glDrawElements(GL_TRIANGLES, static_cast<unsigned int>(skrzydlokierunkowePrawe.meshes[i].indices.size()), GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+
 
 
 #pragma region swiatla
@@ -659,7 +735,55 @@ int main()
         }
 #pragma endregion
 
+        processInput(window, &cursorActive, Kadlub);
+
+        glm::vec3 rotLeft = glm::vec3(glm::vec3(45.0, 0, 0));
+        
+
+        if (!isOnFreemode)
+        {
+            if (firstTime)
+            {
+                camera.Position = CameraObject.transform.getLocalPosition() ;
+                firstTime = false;
+            }
+            CameraObject.transform.setLocalPosition(camera.Position);
+            CameraObject.transform.setLocalRotation(glm::vec3(0 , -camera.Yaw, camera.Pitch));
+            CameraObject.forceUpdate();
+            //Kadlub->transform.setLocalPosition(CameraObject.transform.getLocalPosition() - glm::vec3({ 0, 0, 3 }));
+
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            {
+
+                SkrzydlaKierunkoweLewe->setLocalRotation(glm::vec3(0, 0, 0) + rotLeft);
+                SkrzydlaKierunkowePrawe->setLocalRotation(glm::vec3(0, 0, 0) + rotLeft);
+            }
+            else if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+            {
+
+                SkrzydlaKierunkoweLewe->setLocalRotation(glm::vec3(0, 0, 0) - rotLeft);
+                SkrzydlaKierunkowePrawe->setLocalRotation(glm::vec3(0, 0, 0) - rotLeft);
+            }
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            {
+                SkrzydlaKierunkowePrawe->setLocalRotation(glm::vec3(0, 0, 0) + rotLeft);
+            }
+            else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            {
+
+				SkrzydlaKierunkoweLewe->setLocalRotation(glm::vec3(0, 0, 0) + rotLeft);
+			}
+            else
+            {
+                SkrzydlaKierunkoweLewe->setLocalRotation(glm::vec3(0, 0, 0));
+                SkrzydlaKierunkowePrawe->setLocalRotation(glm::vec3(0, 0, 0));
+            }
+
+
+        }
+
         view = glm::mat4(glm::mat3(camera.GetViewMatrix()));
+
 
         skybox.DrawSkyBox(view, projection);
 
@@ -730,19 +854,81 @@ void MoveDach(int index) {
 
 
 
-void processInput(GLFWwindow* window, bool cursorMode)
+void processInput(GLFWwindow* window, bool cursorMode, GameObject* plane)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+    if (!isOnFreemode) {
+        glm::vec3 basicVector = glm::vec3(glm::vec3(0, -90, 0));
+        
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            camera.ProcessKeyboard(FORWARD, deltaTime, isOnFreemode);
+        }
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            camera.ProcessKeyboard(BACKWARD, deltaTime, isOnFreemode);
+        }
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            basicVector += glm::vec3(0, 0, 15.0);
+            camera.ProcessKeyboard(LEFT, deltaTime, isOnFreemode);
+            
+        }
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            basicVector += glm::vec3(0, 0, -15.0);
+            camera.ProcessKeyboard(RIGHT, deltaTime, isOnFreemode);
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            basicVector += glm::vec3(15, 0, 0);
+            camera.Position += glm::vec3(0.0, 0.02, 0.0);
+        }
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            basicVector += glm::vec3(-15, 0, 0);
+            camera.Position -= glm::vec3(0.0, 0.02, 0.0);
+        }
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            isOnFreemode = true;
+            firstTime = true;
+            printf("Freemode on\n");
+        }
+
+        plane->setLocalRotation(basicVector);
+
+    }
+    else 
+    {
+
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, true);
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera.ProcessKeyboard(FORWARD, deltaTime, isOnFreemode);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera.ProcessKeyboard(BACKWARD, deltaTime, isOnFreemode);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera.ProcessKeyboard(LEFT, deltaTime, isOnFreemode);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera.ProcessKeyboard(RIGHT, deltaTime, isOnFreemode);
+        if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS) {
+            isOnFreemode = false;
+            camera.Pitch = 0;
+            printf("Freemode off\n");
+        }
+        if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+
+    }
+
+
 }
 
 

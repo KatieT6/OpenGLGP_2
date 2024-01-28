@@ -67,7 +67,7 @@ public:
     }
 
     // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined ENUM (to abstract it from windowing systems)
-    void ProcessKeyboard(Camera_Movement direction, float deltaTime)
+    void ProcessKeyboard(Camera_Movement direction, float deltaTime, bool isOnFreemode)
     {
         float velocity = MovementSpeed * deltaTime;
         if (direction == FORWARD)
@@ -75,9 +75,21 @@ public:
         if (direction == BACKWARD)
             Position -= Front * velocity;
         if (direction == LEFT)
-            Position -= Right * velocity;
-        if (direction == RIGHT)
-            Position += Right * velocity;
+            if (isOnFreemode) {
+                Position -= Right * velocity;
+            }
+            else {
+                Yaw -= 0.1;
+            }
+        if (direction == RIGHT) {
+            if (isOnFreemode) {
+                Position += Right * velocity;
+            }
+            else {
+                Yaw += 0.1;
+            }
+        }
+        updateCameraVectors();
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
@@ -111,8 +123,6 @@ public:
         if (Zoom > 45.0f)
             Zoom = 45.0f;
     }
-
-private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
